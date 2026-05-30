@@ -1,0 +1,228 @@
+/*!******************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[13].oneOf[7].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[13].oneOf[7].use[3]!./components/OccasionShop.module.css ***!
+  \******************************************************************************************************************************************************************************************************************************************************************************/
+.OccasionShop_occasionSection__kpPnf {
+  background: #fbf6ed;
+  padding: 72px 0 80px;
+}
+
+.OccasionShop_sectionIntro__DeaNd {
+  margin: 0 auto 32px;
+  max-width: 720px;
+  text-align: center;
+}
+
+.OccasionShop_sectionIntro__DeaNd p {
+  color: #9f7a51;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.OccasionShop_sectionIntro__DeaNd h2 {
+  color: #17110c;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 42px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.OccasionShop_occasionGrid__JXnm_ {
+  display: grid;
+  grid-gap: 18px;
+  gap: 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 66px;
+}
+
+.OccasionShop_occasionCard__GDi6K {
+  align-items: center;
+  aspect-ratio: 2.85 / 1;
+  color: #fff;
+  display: flex;
+  isolation: isolate;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  text-decoration: none;
+}
+
+.OccasionShop_occasionCard__GDi6K::after {
+  background: linear-gradient(180deg, rgba(38, 8, 3, 0.05), rgba(61, 9, 2, 0.72));
+  content: "";
+  inset: 0;
+  position: absolute;
+  z-index: 1;
+}
+
+.OccasionShop_occasionImage__lyEEy {
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  transition: transform 0.45s ease;
+  width: 100%;
+}
+
+.OccasionShop_occasionCard__GDi6K span {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  position: relative;
+  text-transform: uppercase;
+  z-index: 2;
+}
+
+.OccasionShop_occasionCard__GDi6K:hover {
+  color: #fff;
+}
+
+.OccasionShop_occasionCard__GDi6K:hover .OccasionShop_occasionImage__lyEEy {
+  transform: scale(1.06);
+}
+
+.OccasionShop_vibePanel__V_i2i {
+  text-align: center;
+}
+
+.OccasionShop_vibePanel__V_i2i h3 {
+  color: #060403;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 46px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  line-height: 1.15;
+  margin: 0 0 46px;
+}
+
+.OccasionShop_vibeGrid__6Zjio {
+  display: grid;
+  grid-gap: 42px;
+  gap: 42px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.OccasionShop_vibeCard__K1c2_ {
+  color: #18110c;
+  display: block;
+  text-decoration: none;
+}
+
+.OccasionShop_vibeImageWrap__pg4F4 {
+  aspect-ratio: 0.78 / 1;
+  background: #f8e4da;
+  border: 7px solid #fde5dc;
+  border-radius: 999px 999px 10px 10px;
+  box-shadow: 0 18px 40px rgba(91, 38, 18, 0.12);
+  overflow: hidden;
+  position: relative;
+}
+
+.OccasionShop_vibeImage__KwAMj {
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  transition: transform 0.45s ease;
+  width: 100%;
+}
+
+.OccasionShop_vibeCard__K1c2_ span {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-top: 16px;
+  text-transform: uppercase;
+}
+
+.OccasionShop_vibeCard__K1c2_:hover {
+  color: #9f6d3d;
+}
+
+.OccasionShop_vibeCard__K1c2_:hover .OccasionShop_vibeImage__KwAMj {
+  transform: scale(1.05);
+}
+
+@media (max-width: 991px) {
+  .OccasionShop_occasionSection__kpPnf {
+    padding: 58px 0 64px;
+  }
+
+  .OccasionShop_sectionIntro__DeaNd h2 {
+    font-size: 34px;
+  }
+
+  .OccasionShop_occasionGrid__JXnm_ {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 52px;
+  }
+
+  .OccasionShop_occasionCard__GDi6K span {
+    font-size: 26px;
+  }
+
+  .OccasionShop_vibePanel__V_i2i h3 {
+    font-size: 34px;
+    letter-spacing: 0.1em;
+    margin-bottom: 34px;
+  }
+
+  .OccasionShop_vibeGrid__6Zjio {
+    gap: 28px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 576px) {
+  .OccasionShop_occasionSection__kpPnf {
+    padding: 44px 0 52px;
+  }
+
+  .OccasionShop_sectionIntro__DeaNd {
+    margin-bottom: 24px;
+  }
+
+  .OccasionShop_sectionIntro__DeaNd h2 {
+    font-size: 24px;
+    letter-spacing: 0.04em;
+  }
+
+  .OccasionShop_occasionGrid__JXnm_ {
+    gap: 12px;
+    margin-bottom: 42px;
+  }
+
+  .OccasionShop_occasionCard__GDi6K {
+    aspect-ratio: 1.75 / 1;
+  }
+
+  .OccasionShop_occasionCard__GDi6K span {
+    font-size: 18px;
+  }
+
+  .OccasionShop_vibePanel__V_i2i h3 {
+    font-size: 25px;
+    letter-spacing: 0.08em;
+  }
+
+  .OccasionShop_vibeGrid__6Zjio {
+    gap: 20px 14px;
+  }
+
+  .OccasionShop_vibeImageWrap__pg4F4 {
+    border-width: 5px;
+  }
+
+  .OccasionShop_vibeCard__K1c2_ span {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    margin-top: 10px;
+  }
+}
+
