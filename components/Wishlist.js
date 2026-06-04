@@ -1,20 +1,50 @@
 import React from 'react'
 import { FaHeartBroken } from "react-icons/fa";
 import Link from 'next/link';
+import { getImageUrl } from '../store/apiConfig';
 import { useSelector, useDispatch } from 'react-redux';
-import { removeFromWishlist } from '../store/slices/wishList';
+import { removeFromWishlist, fetchWishlist } from '../store/slices/wishList';
+import { showToast } from '../store/slices/toastSlice';
 
 const Wishlist = () => {
   const dispatch = useDispatch();
   const wishlistItems = useSelector((state) => state.wishlist.items) || [];
+  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { loading, error } = useSelector((state) => state.wishlist);
 
-  const handleRemoveItem = (id) => {
-    dispatch(removeFromWishlist(id));
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchWishlist());
+    }
+  }, [dispatch, isAuthenticated]);
+
+  const handleRemoveItem = async (id) => {
+    try {
+      await dispatch(removeFromWishlist(id)).unwrap();
+      dispatch(showToast({ message: 'Item removed from wishlist', type: 'success' }));
+    } catch (err) {
+      dispatch(showToast({ message: err || 'Failed to remove item', type: 'error' }));
+    }
   };
 
   return (
     <div>
-      {wishlistItems.length === 0 ? (
+      {loading && (
+        <div className="text-center py-5 my-5">
+          <div className="spinner-border text-warning" role="status">
+            <span className="visually-hidden">Loading wishlist...</span>
+          </div>
+          <p className="mt-2 text-muted">Fetching your wishlist...</p>
+        </div>
+      )}
+
+      {error && !loading && (
+        <div className="alert alert-warning my-4" role="alert">
+          Unable to load wishlist: {error}
+        </div>
+      )}
+
+      {!loading && !error && wishlistItems.length === 0 ? (
 
         <div className="text-center py-5 my-5">
 
@@ -45,7 +75,7 @@ const Wishlist = () => {
 
         </div>
 
-      ) : (
+      ) : !loading && !error ? (
 
         <div className="row g-4">
 
@@ -61,7 +91,7 @@ const Wishlist = () => {
                 <div className="position-relative">
 
                   <img
-                    src={item.image}
+                    src={getImageUrl(item.image)}
                     alt={item.name}
                     className="card-img-top"
                     style={{
@@ -97,7 +127,7 @@ const Wishlist = () => {
                     </p>
 
                     <Link
-                      href={`/shop/${item.id}`}
+                      href={`/shop/${item.slug || item.id}`}
                       className="btn btn-outline-warning btn-sm rounded-pill"
                     >
                       View
@@ -115,7 +145,7 @@ const Wishlist = () => {
 
         </div>
 
-      )}
+      ) : null}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Package, Heart, Award, MapPin, ShoppingBag } from 'lucide-react';
 import './userprofile.css';
+import { useSelector } from 'react-redux';
 
 const recentOrders = [
   { id: '#MNY-4567', date: 'Oct 12, 2023', status: 'Delivered', total: '₹ 12,500', statusCode: 'delivered' },
@@ -33,10 +34,11 @@ const renderActions = (status) => {
 };
 
 const Dashboard = () => {
+    const { isAuthenticated,user } = useSelector((state) => state.auth);
   return (
     <div className="dashboard-container">
       <div className="dashboard-header-premium">
-        <h2>Namaste, Rajesh Singh!</h2>
+     { isAuthenticated && <h2>Namaste, {user.name}!</h2> }
         <p>Welcome to your personal dashboard. Manage your elegant ensembles, track your bespoke orders, and view your exclusive privilege points all in one place.</p>
       </div>
 

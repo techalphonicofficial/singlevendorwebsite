@@ -4,6 +4,9 @@ import wishlistReducer from './slices/wishList';
 import sizeReducer from "./slices/sizeSlice";
 import toastReducer from "./slices/toastSlice";
 import authReducer from './slices/authSlice';
+import productReducer from './slices/productSlice';
+import bannerReducer from './slices/bannerSlice';
+import reviewReducer from './slices/reviewSlice';
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +15,9 @@ export const store = configureStore({
     sizes: sizeReducer,
     toast: toastReducer,
     auth: authReducer,
+    products: productReducer,
+    banners: bannerReducer,
+    reviews: reviewReducer,
   },
 });
 

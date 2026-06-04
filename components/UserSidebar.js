@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { LayoutDashboard, ShoppingBag, Download, ReceiptText, Truck, Star, Heart, BadgePercent, User, ShieldCheck, MapPin, LogOut, } from 'lucide-react';
 import './userprofile.css';
+import { useSelector } from 'react-redux';
 
 const menuItems = [
     {
@@ -69,22 +70,28 @@ const menuItems = [
     },
 ];
 
-export default function UserSidebar({activeMenu,
-  setActiveMenu}) {
+export default function UserSidebar({ activeMenu,
+    setActiveMenu }) {
+    const { isAuthenticated, user } = useSelector((state) => state.auth);
     return (
         <aside className="dashboard-sidebar">
 
             {/* USER INFO */}
             <div className="sidebar-user">
 
-                <div className="user-avatar">
-                    R
-                </div>
+                {isAuthenticated && (
+                    <div className="user-avatar">
+                        {user?.name?.charAt(0).toUpperCase()}
+                    </div>
+                )}
 
-                <div>
-                    <h3>Rajesh Singh</h3>
-                    <p>rajeshsingh@gmail.com</p>
-                </div>
+               {isAuthenticated && (
+                    <div className="user-info">
+                        <h3>{user?.name}</h3>
+                        <p>{user?.email}</p>
+                        {user?.mobile && <p>{user.mobile}</p>}
+                    </div>
+                )}
 
             </div>
 

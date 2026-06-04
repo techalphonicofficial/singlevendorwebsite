@@ -1,6 +1,6 @@
 'use client';
 import React from 'react'
-import { useState,useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import UserSidebar from '../../components/UserSidebar';
 import Dashboard from '../../components/Dashboard';
 import OrderHistory from '../../components/OrderHistory';
@@ -18,10 +18,9 @@ function page() {
 
   const router = useRouter();
   const [activeMenu, setActiveMenu] = useState('Dashboard');
-  const [userInfo, setUserInfo] = useState(null);
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
 
-   useEffect(() => {
+  useEffect(() => {
 
     if (!isAuthenticated) {
       router.push('/authServices');
@@ -36,7 +35,7 @@ function page() {
       <UserSidebar
         activeMenu={activeMenu}
         setActiveMenu={setActiveMenu}
-        
+
       />
 
       {/* RIGHT */}
@@ -46,7 +45,7 @@ function page() {
         {activeMenu === 'Orders' && <OrderHistory />}
         {activeMenu === 'Invoices' && <Invoice />}
         {activeMenu === 'Reviews' && <Review />}
-        {activeMenu === 'Security' && <PrivacyPolicy userInfo={userInfo} setUserInfo={setUserInfo} />}
+        {activeMenu === 'Security' && <PrivacyPolicy userInfo={user} />}
         {activeMenu === 'Address' && <Addresstab />}
         {activeMenu === 'Order Return Request' && <OrderReturn />}
         {activeMenu === 'Wishlist' && <Wishlist />}

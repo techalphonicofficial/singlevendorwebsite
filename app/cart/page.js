@@ -1,42 +1,82 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import {removeItem,clearCart,increaseQuantity,} from '../../store/slices/cartSlice';
+import {removeItem,clearCart,increaseQuantity, fetchCart, deleteCartItem, updateCartItemQty} from '../../store/slices/cartSlice';
 import { useRouter } from 'next/navigation';
 import { LuShoppingBag } from "react-icons/lu";
 import { RiDeleteBin6Line } from "react-icons/ri";
+import { getImageUrl } from '../../store/apiConfig';
 
 
 export default function CartPage() {
   const cartItems = useSelector((state) => state.cart.items);
   const totalAmount = useSelector((state) => state.cart.totalAmount);
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const dispatch = useDispatch();
   const router = useRouter();
 
+  // Fetch cart data from API on component mount if authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchCart());
+    }
+  }, [dispatch, isAuthenticated]);
+
   const handleRemoveItem = (item) => {
-    dispatch(removeItem({
-      id: item.id,
-      size: item.size
-    }));
+    if (isAuthenticated && item.cartItemId) {
+      dispatch(deleteCartItem(item.cartItemId));
+    } else {
+      dispatch(removeItem({
+        id: item.id,
+        size: item.size
+      }));
+    }
   };
 
   const handleClearCart = () => {
-    dispatch(clearCart());
+    if (isAuthenticated) {
+      cartItems.forEach(item => {
+        if (item.cartItemId) {
+          dispatch(deleteCartItem(item.cartItemId));
+        }
+      });
+    } else {
+      dispatch(clearCart());
+    }
   };
 
   const handleIncrease = (item) => {
-    dispatch(increaseQuantity({
-      id: item.id,
-      size: item.size
-    }));
+    if (isAuthenticated && item.cartItemId) {
+      dispatch(updateCartItemQty({
+        cartItemId: item.cartItemId,
+        variantId: item.variantId,
+        currentQty: item.quantity,
+        targetQty: item.quantity + 1
+      }));
+    } else {
+      dispatch(increaseQuantity({
+        id: item.id,
+        size: item.size
+      }));
+    }
   };
 
   const handleDecrease = (item) => {
-    dispatch(removeItem({
-      id: item.id,
-      size: item.size
-    }));
+    if (isAuthenticated && item.cartItemId) {
+      dispatch(updateCartItemQty({
+        cartItemId: item.cartItemId,
+        variantId: item.variantId,
+        currentQty: item.quantity,
+        targetQty: item.quantity - 1
+      }));
+    } else {
+      dispatch(removeItem({
+        id: item.id,
+        size: item.size
+      }));
+    }
   };
 
   return (
@@ -109,10 +149,10 @@ export default function CartPage() {
                       <div className="cart-image-wrapper">
 
                         <img
-                          src={item.image}
+                          src={getImageUrl(item.image)}
                           alt={item.name}
                           className="cart-image"
-                          onClick={()=>router.push(`/shop/${item.id}`)}
+                          onClick={()=>router.push(`/shop/${item.slug || item.id}`)}
                         />
 
                       </div>

@@ -252,3 +252,124 @@
     flex: 1;
   }
 }
+
+/* Authentication API Integration Styles */
+.auth-error-alert {
+  background-color: #fde8e8;
+  border-left: 4px solid #f05252;
+  color: #9b1c1c;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.auth-success-alert {
+  background-color: #edfaf2;
+  border-left: 4px solid #31c48d;
+  color: #03543f;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.demo-otp-box {
+  background-color: #fef3c7;
+  border: 1px dashed #d97706;
+  color: #92400e;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+.otp-code-highlight {
+  background-color: #d97706;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 15px;
+  margin-left: 6px;
+  letter-spacing: 1px;
+}
+
+.login-method-selector {
+  display: flex;
+  justify-content: space-around;
+  border-bottom: 1px solid #e5e5e5;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+}
+
+.method-tab {
+  font-size: 14px;
+  color: #666;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: all 0.25s ease;
+}
+
+.method-tab:hover {
+  color: #bf8a52;
+}
+
+.active-method {
+  color: #bf8a52;
+  border-bottom: 2px solid #bf8a52;
+  border-radius: 0;
+}
+
+.disabled-input {
+  background-color: #f3f4f6 !important;
+  color: #9ca3af !important;
+  cursor: not-allowed;
+  border-color: #e5e7eb !important;
+}
+
+.form-group-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.form-group-info label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.resend-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.resend-btn {
+  background: none;
+  border: none;
+  color: #bf8a52;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.resend-btn:hover {
+  color: #9b6c36;
+}
+
+.resend-btn:disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+  text-decoration: none;
+}

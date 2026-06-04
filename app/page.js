@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from "next/image";
 import { FaTruck, FaShieldAlt, FaUndoAlt } from "react-icons/fa";
 import OccasionShop from "../components/OccasionShop";
+import Banner from "../components/Banner";
 
 
 const createPlaceholderImage = (text, width = 520, height = 360) => {
@@ -122,31 +123,8 @@ export default function HomePage() {
   return (
     <main>
       {/* video */}
-      <section className="w-full p-0 m-0 overflow-hidden video-section">
-        <div className="video-marquee" aria-hidden="true">
-          <div className="video-marquee-track">
-            <span>Manyavar Mohey Wedding Collection</span>
-            <span>Celebrate every moment in style</span>
-            <span>New festive arrivals now live</span>
-            <span>Manyavar Mohey Wedding Collection</span>
-            <span>Celebrate every moment in style</span>
-            <span>New festive arrivals now live</span>
-          </div>
-        </div>
-        <video
-          className='hero-video'
-          autoPlay
-          muted
-          loop
-          playsInline>
-          <source src="/manyavar.mp4" type="video/mp4" />
-        </video>
-        <div className="video-cta">
-
-          <Link href="/shop" className="video-btn ">Shop Now</Link>
-        </div>
-      </section>
-      {/* Hero Banner */}
+      <Banner />
+      {/*Discovery */}
       <section className="hero-banner">
         <div className="container-lg py-5">
           <div className="row align-items-center g-4">
@@ -202,7 +180,7 @@ export default function HomePage() {
         </div>
       </section>
 
-        {/* occasion */}
+      {/* occasion */}
       <OccasionShop />
 
       {/* Collections Section */}

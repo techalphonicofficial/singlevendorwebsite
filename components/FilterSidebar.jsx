@@ -68,7 +68,7 @@ export default function FilterSidebar({
   const priceRange = filters?.maxPrice || priceBounds?.max || 0;
 
   return (
-    <aside className="filter-sidebar sticky-top" style={{ top: "96px" }}>
+    <aside className="filter-sidebar" style={{ top: "96px" }}>
       <div className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
         <span className="text-uppercase fw-semibold" style={{ fontSize: "11px", letterSpacing: "0.08em" }}>
           Refine By

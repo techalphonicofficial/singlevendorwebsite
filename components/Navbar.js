@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import Image from "next/image";
 import { IoMdMenu } from "react-icons/io";
 import { IoMdClose } from "react-icons/io";
@@ -10,7 +10,9 @@ import { logout } from '../store/slices/authSlice';
 import Searchbar from './Searchbar';
 import { FaRegHeart } from "react-icons/fa";
 import { LuShoppingCart } from "react-icons/lu";
-import { navCategories } from '../data/data';
+import { fetchProducts } from '../store/slices/productSlice';
+import { fetchCart } from '../store/slices/cartSlice';
+import { fetchWishlist } from '../store/slices/wishList';
 import { User } from "lucide-react";
 import { Search, X } from 'lucide-react';
 
@@ -19,16 +21,78 @@ export default function Navbar() {
   const [showMegaMenu, setShowMegaMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [openSearch, setOpenSearch] = useState(false);
+  const [hideNavbar, setHideNavbar] = useState(false);
+  const lastScrollY = useRef(0);
   // const cartItems = useSelector((state) => state.cart.items);
   const totalQuantity = useSelector((state) => state.cart.totalQuantity);
   // const wishlistItems = useSelector((state) => state.wishlist.items);
 
   const wishlistQuantity = useSelector((state) => state.wishlist.totalQuantity);
   const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const { items: apiItems } = useSelector((state) => state.products) || { items: [] };
   const dispatch = useDispatch();
 
+  useEffect(() => {
+    if (!apiItems || apiItems.length === 0) {
+      dispatch(fetchProducts({ page: 1, per_page: 100, include_filters: true }));
+    }
+  }, [dispatch, apiItems]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchCart());
+      dispatch(fetchWishlist());
+    }
+  }, [dispatch, isAuthenticated]);
+
+  const navCategories = useMemo(() => {
+    if (!apiItems || apiItems.length === 0) {
+      return [
+        {
+          category: "Mens",
+          products: []
+        },
+        {
+          category: "Womens",
+          products: []
+        }
+      ];
+    }
+
+    const categoriesMap = {};
+    apiItems.forEach(item => {
+      const catName = item.categories?.[0]?.name || 'General';
+      if (!categoriesMap[catName]) {
+        categoriesMap[catName] = [];
+      }
+      categoriesMap[catName].push({
+        id: item.id,
+        slug: item.slug,
+        name: item.name
+      });
+    });
+
+    return Object.entries(categoriesMap).map(([category, products]) => ({
+      category,
+      products: products.slice(0, 4)
+    }));
+  }, [apiItems]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const scrollingDown = currentScrollY > lastScrollY.current;
+
+      setHideNavbar(scrollingDown && currentScrollY > 90);
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="navbar-custom sticky-top  ">
+    <header className={`navbar-custom sticky-top ${hideNavbar ? "navbar-hidden" : ""}`}>
       <div className="container-fluid px-4 py-3 justify-content-between align-items-center d-none d-md-flex ">
         <Link href="/" className="navbar-brand-custom">
           <Image src='/logo.png' alt='logo' width={120} height={50} className=' logo-glow rounded-pill ' />
@@ -38,7 +102,7 @@ export default function Navbar() {
           <Link href="/" className="nav-link-custom">Home</Link>
           {/* SHOP MEGA MENU */}
           <div
-            className="mega-wrapper" onMouseEnter={() => setShowMegaMenu(true)} onMouseLeave={() => setShowMegaMenu(false)}>
+            className="mega-wrapper " onMouseEnter={() => setShowMegaMenu(true)} onMouseLeave={() => setShowMegaMenu(false)}>
             <Link href="/shop" className="nav-link-custom">
               Shop
             </Link>
@@ -57,7 +121,7 @@ export default function Navbar() {
                       {item.products.map((product) => (
                         <Link
                           key={product.id}
-                          href={`/shop/${product.id}`}
+                          href={`/shop/${product.slug || product.id}`}
                           className="mega-link-item"
                         >
                           {product.name}
