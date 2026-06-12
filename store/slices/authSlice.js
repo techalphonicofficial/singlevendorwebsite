@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { registerUserApi, verifyOtpApi, sendOtpApi, loginUserApi, updateProfileApi } from '../apiService';
+import { registerUserApi, verifyOtpApi, sendOtpApi, loginUserApi, updateProfileApi, forgotPasswordApi } from '../apiService';
 
 // SSR-safe function to retrieve initial auth state from localStorage
 const getStoredAuth = () => {
@@ -34,6 +34,8 @@ const initialState = {
   otpStatus: null,
   registrationStatus: null,
   otpData: null,
+  forgotPasswordStatus: null,
+  passwordReset: false,
 };
 
 // 1. Register Thunk
@@ -97,6 +99,24 @@ export const updateProfile = createAsyncThunk(
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
+    }
+  }
+);
+
+// 6. Forgot Password Thunk
+export const forgotPassword = createAsyncThunk(
+  "auth/forgotPassword",
+  async (payload, { rejectWithValue }) => {
+    try {
+
+      const data = await forgotPasswordApi(payload);
+
+      return data;
+
+    } catch (error) {
+
+      return rejectWithValue(error.message);
+
     }
   }
 );
@@ -229,7 +249,36 @@ const authSlice = createSlice({
       .addCase(updateProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+
+      // Forgot Password
+      .addCase(forgotPassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+
+
+      .addCase(forgotPassword.fulfilled, (state, action) => {
+
+        state.loading = false;
+
+        state.forgotPasswordStatus =
+          action.payload.message;
+
+        state.passwordReset = true;
+
+      })
+
+
+      .addCase(forgotPassword.rejected, (state, action) => {
+
+        state.loading = false;
+
+        state.error = action.payload;
+
       });
+
+
   },
 });
 

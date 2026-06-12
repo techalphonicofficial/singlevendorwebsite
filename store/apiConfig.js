@@ -21,6 +21,8 @@ export const ENDPOINTS = {
   getReviews: (productId) => `${BASE_URL}/reviews?product_id=${productId}`,
   getOrders: `${BASE_URL}/customer/orders`,
   getOrderDetail: (orderId) => `${BASE_URL}/customer/orders/${orderId}`,
+  forgotPassword: `${BASE_URL}/forgot-password`,
+  coupons: `${BASE_URL}/coupons`,
 };
 
 export const getImageUrl = (url) => {

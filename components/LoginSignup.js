@@ -9,33 +9,40 @@ import {
   verifyOtp,
   sendOtp,
   loginUser,
+  forgotPassword,
   clearAuthErrors,
   clearRegistrationStatus
 } from '../store/slices/authSlice';
 
 export default function LoginSignup() {
   const [isLogin, setIsLogin] = useState(true);
-  
+
   // Form fields
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+
   // Login flow customization (email vs phone)
   const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'phone'
   const [showPhoneOtpInput, setShowPhoneOtpInput] = useState(false);
-  
+
   // OTP Verification view (Post-signup)
   const [showOtpVerification, setShowOtpVerification] = useState(false);
   const [otp, setOtp] = useState('');
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotStep, setForgotStep] = useState("email");
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [forgotOtp, setForgotOtp] = useState("");
 
   const router = useRouter();
   const dispatch = useDispatch();
 
   // Select states from Redux
-  const { loading, error, otpData, registrationStatus, otpStatus, isAuthenticated } = useSelector(
+  const { loading, error, otpData, registrationStatus, otpStatus, isAuthenticated, passwordReset } = useSelector(
     (state) => state.auth
   );
 
@@ -47,10 +54,10 @@ export default function LoginSignup() {
 
   // Redirect to userProfile if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !forgotMode) {
       router.push('/userProfile');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, forgotMode, router]);
 
   const resetForm = () => {
     setFullName('');
@@ -179,6 +186,91 @@ export default function LoginSignup() {
       // Handled by Redux
     }
   };
+  // 6. Forgot Password - Send OTP
+  const handleForgotSendOtp = async () => {
+    const phone = mobile.trim();
+    if (!phone) {
+      alert("Enter mobile number");
+      return;
+    }
+
+    try {
+      const result = await dispatch(
+        sendOtp({
+          phone: phone
+        })
+      ).unwrap();
+
+      if (result.status) {
+        setForgotStep("otp");
+      }
+    } catch (err) {
+      console.log("FORGOT OTP ERROR", err);
+    }
+  }
+  // 7. Forgot Password - Verify OTP
+  const handleForgotVerifyOtp = async () => {
+    const phone = mobile.trim();
+    if (!forgotOtp.trim()) {
+      alert("Please enter the OTP");
+      return;
+    }
+
+    try {
+      const result = await dispatch(
+        verifyOtp({
+          phone: phone,
+          otp: forgotOtp
+        })
+      ).unwrap();
+
+      if (result.status) {
+        setForgotStep("password");
+      }
+    } catch (err) {
+      alert("Wrong OTP");
+    }
+
+
+  }
+
+  // 8. Forgot Password - Reset Password
+  const handleResetPassword = async () => {
+    if (!newPassword || !confirmNewPassword) {
+      alert("Please enter both password fields.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      alert("Password must be at least 6 characters long.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      alert("Passwords do not match.");
+      return;
+    }
+
+    try {
+      const result = await dispatch(
+        forgotPassword({
+          phone: mobile.trim(),
+          otp: forgotOtp,
+          password: newPassword,
+          password_confirmation: confirmNewPassword
+        })
+      ).unwrap();
+
+      if (result.status) {
+        alert("Password changed successfully");
+        setForgotMode(false);
+        setForgotStep("email");
+        setNewPassword("");
+        setConfirmNewPassword("");
+        setForgotOtp("");
+      }
+    } catch (err) {
+      alert(err);
+    }
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -222,9 +314,11 @@ export default function LoginSignup() {
 
         {/* RIGHT SIDE */}
         <div className="auth-right">
-          {/* Main switch between Login & Signup - Hide if we are verifying OTP */}
-          {!showOtpVerification && (
+
+          {/* Main switch */}
+          {!showOtpVerification && !forgotMode && (
             <div className="auth-switch">
+
               <button
                 className={isLogin ? 'active-switch' : ''}
                 onClick={() => {
@@ -234,6 +328,8 @@ export default function LoginSignup() {
               >
                 Login
               </button>
+
+
               <button
                 className={!isLogin ? 'active-switch' : ''}
                 onClick={() => {
@@ -243,219 +339,502 @@ export default function LoginSignup() {
               >
                 Signup
               </button>
+
             </div>
           )}
+
+
 
           {/* Heading */}
           <h2>
+
             {showOtpVerification
-              ? 'Verify Number 🔑'
-              : isLogin
-              ? 'Welcome Back 👋'
-              : 'Create Account ✨'}
+              ? "Verify Number 🔑"
+              : forgotMode
+                ? "Forgot Password 🔐"
+                : isLogin
+                  ? "Welcome Back 👋"
+                  : "Create Account ✨"}
+
           </h2>
 
+
+
           <p className="auth-subtitle">
+
             {showOtpVerification
-              ? 'Enter the verification code sent to your phone.'
-              : isLogin
-              ? 'Login to continue shopping.'
-              : 'Join us and explore luxury collections.'}
+              ? "Enter verification code sent to your phone."
+              : forgotMode
+                ? "Reset your password securely."
+                : isLogin
+                  ? "Login to continue shopping."
+                  : "Join us and explore luxury collections."}
           </p>
 
-          {/* Error Banner */}
-          {error && <div className="auth-error-alert">{error}</div>}
-
-          {/* Registration Success Status */}
-          {registrationStatus && (
-            <div className="auth-success-alert">{registrationStatus}</div>
-          )}
-
-          {/* OTP status banner */}
-          {otpStatus && <div className="auth-success-alert">{otpStatus}</div>}
-
-          {/* Simulation/Demo OTP Box */}
-          {otpData && otpData.otp && (
-            <div className="demo-otp-box">
-              <strong>✨ Demo OTP Code (For Testing): </strong>
-              <span className="otp-code-highlight">{otpData.otp}</span>
+          {error &&
+            <div className="auth-error-alert">
+              {error}
             </div>
+          }
+          {registrationStatus &&
+            <div className="auth-success-alert">
+              {registrationStatus}
+            </div>
+          }
+
+          {otpStatus &&
+            <div className="auth-success-alert">
+              {otpStatus}
+            </div>
+          }
+
+          {/* Demo OTP */}
+
+          {otpData?.otp && (
+
+            <div className="demo-otp-box">
+
+              <strong>
+                ✨ Demo OTP Code:
+              </strong>
+
+              <span className="otp-code-highlight">
+                {otpData.otp}
+              </span>
+
+            </div>
+
           )}
 
-          {/* POST-SIGNUP OTP VERIFICATION VIEW */}
+          {/* ================= SIGNUP OTP ================= */}
+
           {showOtpVerification ? (
-            <form className="auth-form" onSubmit={handleVerifySignupOtp}>
-              <div className="form-group-info">
-                <label>Verifying Phone Number:</label>
-                <input type="text" value={mobile} disabled className="disabled-input" />
-              </div>
+
+
+            <form
+              className="auth-form"
+              onSubmit={handleVerifySignupOtp}
+            >
+
+
+              <input
+                value={mobile}
+                disabled
+                className="disabled-input"
+              />
+
 
               <input
                 type="text"
-                placeholder="Enter 4-Digit OTP"
+                placeholder="Enter OTP"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 maxLength={6}
-                required
               />
 
-              <button className="auth-btn" type="submit" disabled={loading}>
-                {loading ? 'Verifying...' : 'VERIFY & REGISTER'}
+
+              <button
+                className="auth-btn"
+                disabled={loading}
+              >
+
+                {loading
+                  ? "Verifying..."
+                  : "VERIFY & REGISTER"}
+
               </button>
 
-              <div className="resend-container">
-                <button
-                  type="button"
-                  className="resend-btn"
-                  onClick={handleResendSignupOtp}
-                  disabled={loading}
-                >
-                  Resend OTP
-                </button>
-              </div>
 
-              <p className="bottom-text">
-                Want to go back?{' '}
-                <span
+
+              <button
+                type="button"
+                className="resend-btn"
+                onClick={handleResendSignupOtp}
+              >
+
+                Resend OTP
+
+              </button>
+
+
+
+            </form>
+
+
+
+          )
+
+
+
+
+
+            /* ================= FORGOT PASSWORD ================= */
+
+
+            : forgotMode ? (
+
+
+
+              <form className="auth-form">
+
+
+
+                {/* STEP 1 EMAIL */}
+
+                {forgotStep === "email" && (
+
+                  <>
+
+                    <input
+                      type="tel"
+                      placeholder="Enter Mobile Number"
+                      value={mobile}
+                      onChange={(e) => setMobile(e.target.value)}
+                    />
+
+                    <button
+                      type="button"
+                      className="auth-btn"
+                      onClick={handleForgotSendOtp}
+                    >
+                      SEND OTP
+                    </button>
+
+                  </>
+
+                )}
+
+
+
+
+
+
+                {/* STEP 2 OTP */}
+
+
+                {forgotStep === "otp" && (
+
+
+                  <>
+
+
+                    <input
+                      placeholder="Enter OTP"
+                      value={forgotOtp}
+                      onChange={(e) => setForgotOtp(e.target.value)}
+                      maxLength={6}
+                    />
+
+
+
+                    <button
+                      type="button"
+                      className="auth-btn"
+                      onClick={handleForgotVerifyOtp}
+                    >
+
+                      VERIFY OTP
+
+                    </button>
+
+
+
+                    <button
+                      type="button"
+                      className="resend-btn"
+                      onClick={handleForgotSendOtp}
+                    >
+
+                      RESEND OTP
+
+                    </button>
+
+
+
+                  </>
+
+                )}
+
+                {/* STEP 3 PASSWORD */}
+
+
+                {forgotStep === "password" && (
+
+
+                  <>
+
+
+                    <input
+                      type="password"
+                      placeholder="New Password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+
+                    <input
+                      type="password"
+                      placeholder="Confirm New Password"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    />
+
+
+                    <button
+                      type="button"
+                      className="auth-btn"
+                      onClick={handleResetPassword}
+                      disabled={loading}
+                    >
+
+                      {loading ? "Please wait..." : "CHANGE PASSWORD"}
+
+                    </button>
+
+
+                  </>
+
+
+                )}
+
+
+
+
+
+
+
+                <p
+                  className="bottom-text"
                   onClick={() => {
-                    resetForm();
-                    setIsLogin(false);
+
+                    setForgotMode(false);
+                    setForgotStep("email");
+
                   }}
                 >
-                  Back to Signup
-                </span>
-              </p>
-            </form>
-          ) : (
-            /* STANDARD LOGIN / SIGNUP VIEW */
-            <form className="auth-form" onSubmit={handleSubmit}>
-              {/* Login Method Switch (Email vs Phone) */}
-              {isLogin && (
-                <div className="login-method-selector">
-                  <span
-                    className={`method-tab ${loginMethod === 'email' ? 'active-method' : ''}`}
-                    onClick={() => {
-                      setLoginMethod('email');
-                      resetForm();
-                    }}
+
+                  Back to Login
+
+                </p>
+
+
+
+              </form>
+
+
+
+
+            )
+
+
+
+
+
+              /* ================= LOGIN SIGNUP ================= */
+
+
+
+              : (
+
+
+
+                <form
+                  className="auth-form"
+                  onSubmit={handleSubmit}
+                >
+
+
+
+
+                  {isLogin && (
+
+                    <div className="login-method-selector">
+
+
+                      <span
+                        className={`method-tab ${loginMethod === "email"
+                          ? "active-method"
+                          : ""
+                          }`}
+                        onClick={() => {
+                          setLoginMethod("email")
+                        }}
+                      >
+
+                        Email & Password
+
+                      </span>
+
+
+
+                      <span
+
+                        className={`method-tab ${loginMethod === "phone"
+                          ? "active-method"
+                          : ""
+                          }`}
+
+                        onClick={() => {
+                          setLoginMethod("phone")
+                        }}
+
+                      >
+
+                        Phone & OTP
+
+                      </span>
+
+
+                    </div>
+
+                  )}
+
+
+
+
+
+
+
+                  {!isLogin && (
+
+                    <input
+                      placeholder="Full Name"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                    />
+
+                  )}
+
+
+
+
+
+
+                  {(!isLogin || loginMethod === "email") && (
+
+                    <input
+                      type="email"
+                      placeholder="Email Address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+
+                  )}
+
+
+
+
+
+
+
+                  {(!isLogin || loginMethod === "phone") && (
+
+                    <input
+                      placeholder="Phone Number"
+                      value={mobile}
+                      onChange={(e) => setMobile(e.target.value)}
+                    />
+
+                  )}
+
+
+
+
+
+
+                  {(!isLogin || loginMethod === "email") && (
+
+                    <input
+                      type="password"
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+
+                  )}
+
+
+
+
+
+
+                  {!isLogin && (
+
+                    <input
+                      type="password"
+                      placeholder="Confirm Password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+
+                  )}
+
+
+
+
+
+
+
+                  {isLogin &&
+                    loginMethod === "phone" &&
+                    showPhoneOtpInput && (
+
+                      <input
+                        placeholder="OTP"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                      />
+
+                    )}
+
+
+
+
+
+
+
+                  <button
+                    className="auth-btn"
+                    disabled={loading}
                   >
-                    Email & Password
-                  </span>
-                  <span
-                    className={`method-tab ${loginMethod === 'phone' ? 'active-method' : ''}`}
-                    onClick={() => {
-                      setLoginMethod('phone');
-                      resetForm();
-                      setLoginMethod('phone'); // prevent override
-                    }}
-                  >
-                    Phone & OTP
-                  </span>
-                </div>
+
+                    {loading
+                      ? "Please wait..."
+                      : isLogin
+                        ? "LOGIN"
+                        : "CREATE ACCOUNT"}
+
+                  </button>
+
+
+
+
+
+                  {isLogin && (
+
+                    <p
+                      className="bottom-text"
+                      onClick={() => {
+
+                        setForgotMode(true);
+                        setForgotStep("email");
+
+                      }}
+                    >
+
+                      Forgot Password?
+
+                    </p>
+
+                  )}
+
+
+
+
+
+                </form>
+
+
               )}
-
-              {/* Full Name (Signup only) */}
-              {!isLogin && (
-                <input
-                  type="text"
-                  placeholder="Full Name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                />
-              )}
-
-              {/* Email Address (Signup, or Email Login method) */}
-              {(!isLogin || (isLogin && loginMethod === 'email')) && (
-                <input
-                  type="email"
-                  placeholder="Email Address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              )}
-
-              {/* Phone/Mobile Number (Signup, or Phone Login method) */}
-              {(!isLogin || (isLogin && loginMethod === 'phone')) && (
-                <input
-                  type="tel"
-                  placeholder="Phone Number"
-                  value={mobile}
-                  onChange={(e) => setMobile(e.target.value)}
-                  disabled={isLogin && showPhoneOtpInput}
-                  className={isLogin && showPhoneOtpInput ? 'disabled-input' : ''}
-                  required
-                />
-              )}
-
-              {/* Password (Signup, or Email Login method) */}
-              {(!isLogin || (isLogin && loginMethod === 'email')) && (
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              )}
-
-              {/* Confirm Password (Signup only) */}
-              {!isLogin && (
-                <input
-                  type="password"
-                  placeholder="Confirm Password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-              )}
-
-              {/* OTP Code Input (Phone login method, only after sending OTP) */}
-              {isLogin && loginMethod === 'phone' && showPhoneOtpInput && (
-                <input
-                  type="text"
-                  placeholder="Enter OTP"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  maxLength={6}
-                  required
-                />
-              )}
-
-              {/* Submit Button */}
-              <button className="auth-btn" type="submit" disabled={loading}>
-                {loading ? (
-                  'Please wait...'
-                ) : isLogin ? (
-                  loginMethod === 'email' ? (
-                    'LOGIN'
-                  ) : !showPhoneOtpInput ? (
-                    'SEND OTP'
-                  ) : (
-                    'VERIFY & LOGIN'
-                  )
-                ) : (
-                  'CREATE ACCOUNT'
-                )}
-              </button>
-            </form>
-          )}
-
-          {/* Toggle link */}
-          {!showOtpVerification && (
-            <p className="bottom-text">
-              {isLogin ? "Don't have an account?" : 'Already have an account?'}
-              <span
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  resetForm();
-                }}
-              >
-                {isLogin ? ' Signup' : ' Login'}
-              </span>
-            </p>
-          )}
         </div>
       </div>
     </section>

@@ -166,6 +166,7 @@ const initialState = {
   promotionData: null,
   loading: false,
   error: null,
+  appliedCoupon: null,
 };
 
 const cartSlice = createSlice({
@@ -230,6 +231,12 @@ const cartSlice = createSlice({
       state.items = [];
       state.totalQuantity = 0;
       state.totalAmount = 0;
+    },
+    applyCoupon(state, action) {
+      state.appliedCoupon = action.payload;
+    },
+    removeCoupon(state) {
+      state.appliedCoupon = null;
     },
   },
   extraReducers: (builder) => {
@@ -351,5 +358,5 @@ const cartSlice = createSlice({
   },
 });
 
-export const { addItem, removeItem, clearCart, increaseQuantity, } = cartSlice.actions;
+export const { addItem, removeItem, clearCart, increaseQuantity, applyCoupon, removeCoupon, } = cartSlice.actions;
 export default cartSlice.reducer;

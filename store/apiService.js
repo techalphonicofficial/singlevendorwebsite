@@ -801,3 +801,63 @@ export const fetchOrderDetailApi = async (orderId, token) => {
   console.log('=== REDUX ORDERS API: Fetch Order Detail Succeeded ===');
   return data.data;
 };
+
+
+export const forgotPasswordApi = async (payload) => {
+  const response = await fetch(
+    ENDPOINTS.forgotPassword,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "ngrok-skip-browser-warning": "true",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  const responseText = await response.text();
+  let data;
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch (e) {
+    throw new Error('Invalid JSON response from server');
+  }
+
+  if (!response.ok || data.status === false) {
+    throw new Error(data.message || "Forgot password failed");
+  }
+
+  return data;
+};
+
+export const fetchCouponsApi = async (token) => {
+  let activeToken = token;
+  if (!activeToken && typeof window !== 'undefined') {
+    activeToken = localStorage.getItem('auth_token');
+  }
+
+  const response = await fetch(ENDPOINTS.coupons, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+      ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }),
+    },
+  });
+
+  const responseText = await response.text();
+  let data;
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch (e) {
+    throw new Error('Invalid JSON response from server');
+  }
+
+  if (!response.ok || data.status === false) {
+    throw new Error(data.message || 'Failed to fetch coupons');
+  }
+
+  return data.data || [];
+};

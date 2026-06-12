@@ -3,11 +3,12 @@
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import {removeItem,clearCart,increaseQuantity, fetchCart, deleteCartItem, updateCartItemQty} from '../../store/slices/cartSlice';
+import {removeItem,clearCart,increaseQuantity, fetchCart, deleteCartItem, updateCartItemQty, applyCoupon, removeCoupon} from '../../store/slices/cartSlice';
 import { useRouter } from 'next/navigation';
 import { LuShoppingBag } from "react-icons/lu";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { getImageUrl } from '../../store/apiConfig';
+import { showToast } from '../../store/slices/toastSlice';
 
 
 export default function CartPage() {
@@ -16,6 +17,21 @@ export default function CartPage() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const dispatch = useDispatch();
   const router = useRouter();
+
+  const appliedCoupon = useSelector((state) => state.cart.appliedCoupon);
+
+  const getDiscount = (coupon) => {
+    if (!coupon) return 0;
+    const val = parseFloat(coupon.discount_value);
+    if (coupon.discount_type === 'percentage') {
+      return (totalAmount * val) / 100;
+    }
+    // fixed
+    return Math.min(val, totalAmount);
+  };
+
+  const discount = appliedCoupon ? getDiscount(appliedCoupon) : 0;
+  const grandTotal = Math.max(0, totalAmount - discount);
 
   // Fetch cart data from API on component mount if authenticated
   useEffect(() => {
@@ -292,11 +308,11 @@ export default function CartPage() {
                 <div className="summary-row">
 
                   <span>
-                    Discount
+                    Coupon Discount {appliedCoupon && <span className="badge bg-success ms-1" style={{ fontSize: '10px' }}>{appliedCoupon.code}</span>}
                   </span>
 
                   <span className="text-success">
-                    - ₹500
+                    {appliedCoupon ? `- ₹${discount.toLocaleString()}` : '₹0'}
                   </span>
 
                 </div>
@@ -320,10 +336,40 @@ export default function CartPage() {
                   <span>Total Amount</span>
 
                   <span>
-                    ₹{totalAmount.toLocaleString()}
+                    ₹{grandTotal.toLocaleString()}
                   </span>
 
                 </div>
+
+                {appliedCoupon && (
+                  <div className="p-3 mb-3 rounded border text-start position-relative animate__animated animate__fadeIn" style={{
+                    backgroundColor: '#f6fff9',
+                    borderColor: '#a3e2b9',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 6px rgba(40,167,69,0.05)'
+                  }}>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        <span className="fw-bold text-success" style={{ fontSize: '13px', display: 'block', marginBottom: '2px' }}>
+                          🏷️ COUPON APPLIED: {appliedCoupon.code}
+                        </span>
+                        <p className="text-muted m-0" style={{ fontSize: '11px' }}>
+                          You save extra ₹{discount.toLocaleString()}!
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          dispatch(removeCoupon());
+                          dispatch(showToast({ message: 'Coupon removed', type: 'info' }));
+                        }}
+                        className="btn btn-sm btn-outline-danger py-1 px-2 border-0 fw-bold"
+                        style={{ fontSize: '11px' }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <Link
                   href="/checkout"

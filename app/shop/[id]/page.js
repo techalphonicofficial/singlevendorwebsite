@@ -5,13 +5,13 @@ import '../../../components/shopage.css';
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { addCartItem, fetchCart } from '../../../store/slices/cartSlice';
+import { addCartItem, fetchCart, applyCoupon, removeCoupon } from '../../../store/slices/cartSlice';
 import { addToWishlist, removeFromWishlist } from '../../../store/slices/wishList';
 import { setSelectedSize } from '../../../store/slices/sizeSlice';
 import { showToast } from '../../../store/slices/toastSlice';
 import { fetchProducts } from '../../../store/slices/productSlice';
 import { getImageUrl } from '../../../store/apiConfig';
-import { fetchProductDetailApi } from '../../../store/apiService';
+import { fetchProductDetailApi, fetchCouponsApi } from '../../../store/apiService';
 import { FiZoomIn, FiShoppingCart } from 'react-icons/fi';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import ProductReviews from '../../../components/ProductReviews';
@@ -105,6 +105,27 @@ export default function ProductDetailPage() {
   const selectedSizes = useSelector(state => state.sizes.selectedSizes);
   const { items: allItems } = useSelector(state => state.products);
   const fancyboxRef = useRef(null);
+
+  // Coupons state
+  const [coupons, setCoupons] = useState([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(false);
+  const appliedCoupon = useSelector(state => state.cart.appliedCoupon);
+  const token = useSelector(state => state.auth.token);
+
+  useEffect(() => {
+    const loadCoupons = async () => {
+      setLoadingCoupons(true);
+      try {
+        const data = await fetchCouponsApi(token);
+        setCoupons(data || []);
+      } catch (err) {
+        console.error('Failed to load coupons:', err);
+      } finally {
+        setLoadingCoupons(false);
+      }
+    };
+    loadCoupons();
+  }, [token]);
 
   // ── Fetch product from API directly ──────────────────────────────────────
   useEffect(() => {
@@ -477,6 +498,131 @@ export default function ProductDetailPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Coupons & Offers Section */}
+              {!loadingCoupons && coupons && coupons.length > 0 && (
+                <div className="exclusive-offers-section mb-4 p-3 rounded" style={{
+                  background: 'linear-gradient(135deg, #fdfbf7 0%, #f7f1e5 100%)',
+                  border: '1px solid #e8dec9',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 12px rgba(212, 165, 116, 0.05)'
+                }}>
+                  <div className="d-flex align-items-center gap-2 mb-3">
+                    <span style={{ fontSize: '18px' }}>🏷️</span>
+                    <h6 className="m-0 fw-bold text-dark" style={{ letterSpacing: '0.5px' }}>EXCLUSIVE OFFERS FOR YOU</h6>
+                  </div>
+
+                  <div className="d-flex flex-column gap-2">
+                    {coupons.map((coupon) => {
+                      const isApplied = appliedCoupon?.code === coupon.code;
+                      const now = new Date();
+                      const validFrom = new Date(coupon.valid_from);
+                      const validUntil = new Date(coupon.valid_until);
+                      const isActive = now >= validFrom && now <= validUntil;
+
+                      if (!isActive) return null; // Only show active coupons
+
+                      return (
+                        <div
+                          key={coupon.id}
+                          className="coupon-voucher-card position-relative overflow-hidden d-flex justify-content-between align-items-center p-3"
+                          style={{
+                            background: isApplied ? '#fffdf9' : '#ffffff',
+                            border: isApplied ? '1.5px solid #d4a574' : '1px dashed #d1c7bd',
+                            borderRadius: '8px',
+                            transition: 'all 0.3s ease',
+                            boxShadow: isApplied ? '0 4px 10px rgba(212,165,116,0.15)' : 'none'
+                          }}
+                        >
+                          {/* Ticket Notches */}
+                          <div style={{
+                            position: 'absolute',
+                            left: '-8px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            width: '16px',
+                            height: '16px',
+                            background: '#ffffff', // matches page background or container
+                            borderRadius: '50%',
+                            borderRight: isApplied ? '1.5px solid #d4a574' : '1px dashed #d1c7bd',
+                            zIndex: 2
+                          }} />
+                          <div style={{
+                            position: 'absolute',
+                            right: '-8px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            width: '16px',
+                            height: '16px',
+                            background: '#ffffff',
+                            borderRadius: '50%',
+                            borderLeft: isApplied ? '1.5px solid #d4a574' : '1px dashed #d1c7bd',
+                            zIndex: 2
+                          }} />
+
+                          <div className="d-flex flex-column" style={{ paddingLeft: '8px', paddingRight: '8px' }}>
+                            <div className="d-flex align-items-center gap-2 mb-1">
+                              <span className="badge fw-bold" style={{
+                                backgroundColor: '#d4a574',
+                                color: 'white',
+                                fontSize: '11px',
+                                fontFamily: 'monospace',
+                                letterSpacing: '1px'
+                              }}>
+                                {coupon.code}
+                              </span>
+                              <span className="text-dark fw-bold" style={{ fontSize: '13px' }}>
+                                {coupon.discount_type === 'percentage'
+                                  ? `${coupon.discount_value}% OFF`
+                                  : `₹${parseFloat(coupon.discount_value).toFixed(0)} OFF`}
+                              </span>
+                            </div>
+                            <p className="text-muted m-0" style={{ fontSize: '11px' }}>
+                              {coupon.description || `Get discount on your order`}
+                            </p>
+                          </div>
+
+                          <div style={{ zIndex: 3 }}>
+                            {isApplied ? (
+                              <button
+                                onClick={() => {
+                                  dispatch(removeCoupon());
+                                  dispatch(showToast({ message: 'Coupon removed', type: 'info' }));
+                                }}
+                                className="btn btn-sm px-3 rounded-pill text-success fw-bold d-flex align-items-center gap-1"
+                                style={{
+                                  backgroundColor: '#eafaf1',
+                                  border: '1px solid #28a745',
+                                  fontSize: '12px'
+                                }}
+                              >
+                                ✓ Applied
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  dispatch(applyCoupon(coupon));
+                                  dispatch(showToast({ message: `Coupon ${coupon.code} Applied!`, type: 'success' }));
+                                }}
+                                className="btn btn-sm px-3 rounded-pill fw-bold"
+                                style={{
+                                  backgroundColor: '#d4a574',
+                                  color: 'white',
+                                  border: 'none',
+                                  fontSize: '12px',
+                                  transition: 'all 0.2s ease'
+                                }}
+                              >
+                                Apply
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Product Details Table */}
               <div className="product-details my-4">
