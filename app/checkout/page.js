@@ -4,49 +4,78 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchCouponsApi } from '../../store/apiService';
-import { applyCoupon as applyCouponAction, removeCoupon as removeCouponAction } from '../../store/slices/cartSlice';
+import { applyCoupon as applyCouponAction, removeCoupon as removeCouponAction, clearCart, clearCartFromServer } from '../../store/slices/cartSlice';
+import { fetchCheckoutDetails, placeOrder } from '../../store/slices/orderSlice';
+import { showToast } from '../../store/slices/toastSlice';
+import { Loader2, Check } from 'lucide-react';
 
 export default function CheckoutPage() {
   const dispatch = useDispatch();
-  const cartItems = useSelector((state) => state.cart.items);
-  const totalAmount = useSelector((state) => state.cart.totalAmount);
+  const token = useSelector((state) => state.auth.token);
+  const user = useSelector((state) => state.auth.user);
+  
+  const { checkoutData, checkoutLoading, checkoutError, actionLoading } = useSelector((state) => state.orders);
+
+  // Selected checkout options
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
 
   // Coupon states
   const [coupons, setCoupons] = useState([]);
   const [couponCode, setCouponCode] = useState('');
   const appliedCoupon = useSelector((state) => state.cart.appliedCoupon);
-  const token = useSelector((state) => state.auth.token);
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState('');
   const [loadingCoupons, setLoadingCoupons] = useState(false);
 
-  // Fetch coupons on mount
+  // Fetch checkout details & coupons on mount
   useEffect(() => {
-    const loadCoupons = async () => {
-      setLoadingCoupons(true);
-      try {
-        const data = await fetchCouponsApi(token);
-        setCoupons(data);
-      } catch (err) {
-        console.error('Failed to load coupons:', err);
-      } finally {
-        setLoadingCoupons(false);
+    if (token) {
+      dispatch(fetchCheckoutDetails(token));
+      
+      const loadCoupons = async () => {
+        setLoadingCoupons(true);
+        try {
+          const data = await fetchCouponsApi(token);
+          setCoupons(data);
+        } catch (err) {
+          console.error('Failed to load coupons:', err);
+        } finally {
+          setLoadingCoupons(false);
+        }
+      };
+      loadCoupons();
+    }
+  }, [token, dispatch]);
+
+  // Pre-select default address and default payment method when checkoutData loads
+  useEffect(() => {
+    if (checkoutData) {
+      // Find default address
+      const defaultAddr = checkoutData.addresses?.find((addr) => addr.is_default || addr.isDefault) || checkoutData.addresses?.[0];
+      if (defaultAddr) {
+        setSelectedAddressId(defaultAddr.id);
       }
-    };
-    loadCoupons();
-  }, [token]);
+
+      // Find default payment gateway
+      const defaultGateway = checkoutData.payment_gateways?.find((gw) => gw.is_default || gw.isDefault) || checkoutData.payment_gateways?.[0];
+      if (defaultGateway) {
+        setSelectedPaymentMethod(defaultGateway.slug);
+      }
+    }
+  }, [checkoutData]);
 
   // Sync applied coupon with Redux state
   useEffect(() => {
     if (appliedCoupon && coupons.length > 0) {
       setCouponCode(appliedCoupon.code);
-      setCouponSuccess(`Coupon "${appliedCoupon.code}" applied! You save ₹${getDiscount(appliedCoupon).toFixed(2)}`);
+      setCouponSuccess(`Coupon "${appliedCoupon.code}" applied!`);
       setCouponError('');
     } else if (!appliedCoupon) {
       setCouponCode('');
       setCouponSuccess('');
     }
-  }, [appliedCoupon, coupons, totalAmount]);
+  }, [appliedCoupon, coupons]);
 
   // Apply coupon logic
   const applyCoupon = (code) => {
@@ -91,18 +120,22 @@ export default function CheckoutPage() {
     setCouponError('');
   };
 
+  // Cost calculations
+  const subtotal = checkoutData?.promotions?.subtotal || 0;
+  const shipping = checkoutData?.promotions?.total_shipping || 0;
+  const tax = checkoutData?.promotions?.total_tax || 0;
+
   const getDiscount = (coupon) => {
     if (!coupon) return 0;
     const val = parseFloat(coupon.discount_value);
     if (coupon.discount_type === 'percentage') {
-      return (totalAmount * val) / 100;
+      return (subtotal * val) / 100;
     }
-    // fixed
-    return Math.min(val, totalAmount);
+    return Math.min(val, subtotal);
   };
 
-  const discount = appliedCoupon ? getDiscount(appliedCoupon) : 0;
-  const grandTotal = Math.max(0, totalAmount - discount);
+  const discount = appliedCoupon ? getDiscount(appliedCoupon) : (checkoutData?.promotions?.total_discount || 0);
+  const grandTotal = Math.max(0, subtotal + shipping + tax - discount);
 
   const formatDate = (dateStr) => {
     return new Date(dateStr).toLocaleDateString('en-IN', {
@@ -110,49 +143,230 @@ export default function CheckoutPage() {
     });
   };
 
+  // Load Razorpay Script
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  // Place Order Handler
+  const handlePlaceOrder = async () => {
+    if (!selectedAddressId) {
+      dispatch(showToast({ message: 'Please select a shipping address.', type: 'error' }));
+      return;
+    }
+    if (!selectedPaymentMethod) {
+      dispatch(showToast({ message: 'Please select a payment method.', type: 'error' }));
+      return;
+    }
+
+    const payload = {
+      shipping_address_id: selectedAddressId,
+      payment_method: selectedPaymentMethod,
+      coupon_code: appliedCoupon ? appliedCoupon.code : null,
+    };
+
+    try {
+      const orderResponse = await dispatch(placeOrder({ payload, token })).unwrap();
+      const placedOrder = orderResponse?.data || orderResponse?.order || orderResponse;
+
+      if (!placedOrder) {
+        throw new Error('No order details returned from server');
+      }
+
+      if (selectedPaymentMethod === 'razorpay') {
+        const scriptLoaded = await loadRazorpayScript();
+        if (!scriptLoaded) {
+          dispatch(showToast({ message: 'Razorpay SDK failed to load. Please try again.', type: 'error' }));
+          return;
+        }
+
+        const gateway = checkoutData.payment_gateways?.find((gw) => gw.slug === 'razorpay');
+
+        const options = {
+          key: gateway?.credentials?.api_key || 'rzp_test_SwjbMbNJY1a0WR',
+          amount: Math.round(parseFloat(placedOrder.total_amount || grandTotal) * 100),
+          currency: gateway?.currency || 'INR',
+          name: 'Rekha Corporation',
+          description: `Order ${placedOrder.order_number}`,
+          order_id: placedOrder.gateway_order_id,
+          handler: async function (paymentRes) {
+            dispatch(showToast({ message: 'Payment successful! Order placed.', type: 'success' }));
+            try {
+              const itemsToClear = checkoutData?.cart?.items || [];
+              await dispatch(clearCartFromServer(itemsToClear)).unwrap();
+            } catch (err) {
+              console.error("Failed to empty cart on backend:", err);
+            }
+            window.location.href = `/track-order/${placedOrder.order_number}?success=true`;
+          },
+          prefill: {
+            name: user?.name || '',
+            email: user?.email || '',
+            contact: user?.phone || '',
+          },
+          theme: {
+            color: '#bf8a52',
+          },
+          modal: {
+            ondismiss: function () {
+              dispatch(showToast({ message: 'Payment cancelled. Order remains pending.', type: 'warning' }));
+              window.location.href = '/userProfile?tab=orders';
+            }
+          }
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      } else {
+        // COD or other offline methods
+        dispatch(showToast({ message: 'Order placed successfully!', type: 'success' }));
+        try {
+          const itemsToClear = checkoutData?.cart?.items || [];
+          await dispatch(clearCartFromServer(itemsToClear)).unwrap();
+        } catch (err) {
+          console.error("Failed to empty cart on backend:", err);
+        }
+        window.location.href = `/track-order/${placedOrder.order_number}?success=true`;
+      }
+    } catch (err) {
+      dispatch(showToast({ message: err || 'Failed to place order.', type: 'error' }));
+    }
+  };
+
+  if (checkoutLoading && !checkoutData) {
+    return (
+      <main style={{ minHeight: '100vh', background: '#f8f6f3', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Loader2 className="spinner" size={40} style={{ color: '#d4a574', animation: 'spin 1s linear infinite' }} />
+        <span style={{ marginLeft: '10px', fontSize: '16px', color: '#666' }}>Loading checkout details...</span>
+      </main>
+    );
+  }
+
+  if (checkoutError) {
+    return (
+      <main style={{ minHeight: '100vh', background: '#f8f6f3', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '15px' }}>
+        <p style={{ color: '#dc3545', fontSize: '18px' }}>Error loading checkout: {checkoutError}</p>
+        <Link href="/cart">
+          <button style={applyBtnStyle}>Back to Cart</button>
+        </Link>
+      </main>
+    );
+  }
+
+  const addresses = checkoutData?.addresses || [];
+  const gateways = checkoutData?.payment_gateways || [];
+  const cartItems = checkoutData?.cart?.items || [];
+
   return (
     <main style={{ minHeight: '100vh', background: '#f8f6f3', padding: '40px 0 60px' }}>
       <div className="container">
         <h1 className="display-6 fw-bold mb-4" style={{ color: '#1a1a1a' }}>Checkout</h1>
 
         <div className="row">
-          {/* LEFT - Shipping */}
+          {/* LEFT - Shipping & Payment */}
           <div className="col-lg-8">
+            {/* Address Selection */}
             <div className="card mb-4" style={cardStyle}>
               <div className="card-body" style={{ padding: '28px' }}>
                 <h5 className="card-title" style={sectionTitleStyle}>
-                  <span style={iconCircleStyle}>📦</span> Shipping Information
+                  <span style={iconCircleStyle}>📦</span> Select Shipping Address
                 </h5>
-                <form>
-                  <div className="row">
-                    <div className="col-md-6 mb-3">
-                      <label htmlFor="firstName" className="form-label" style={labelStyle}>First Name</label>
-                      <input type="text" className="form-control" id="firstName" style={inputStyle} />
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <label htmlFor="lastName" className="form-label" style={labelStyle}>Last Name</label>
-                      <input type="text" className="form-control" id="lastName" style={inputStyle} />
-                    </div>
+                
+                {addresses.length === 0 ? (
+                  <div style={{ padding: '20px', textAlign: 'center', border: '1px dashed #ddd', borderRadius: '8px' }}>
+                    <p style={{ color: '#888', margin: '0 0 10px 0' }}>No shipping addresses found.</p>
+                    <Link href="/profile" style={{ color: '#bf8a52', fontWeight: 600 }}>Go to profile to add address</Link>
                   </div>
-                  <div className="mb-3">
-                    <label htmlFor="email" className="form-label" style={labelStyle}>Email</label>
-                    <input type="email" className="form-control" id="email" style={inputStyle} />
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                    {addresses.map((addr) => {
+                      const isSelected = selectedAddressId === addr.id;
+                      return (
+                        <div
+                          key={addr.id}
+                          onClick={() => setSelectedAddressId(addr.id)}
+                          style={{
+                            border: isSelected ? '2px solid #bf8a52' : '1px solid #e5e1da',
+                            borderRadius: '10px',
+                            padding: '16px',
+                            cursor: 'pointer',
+                            backgroundColor: isSelected ? '#fffcf7' : '#fff',
+                            transition: 'all 0.2s',
+                            position: 'relative'
+                          }}
+                        >
+                          {isSelected && (
+                            <div style={{ position: 'absolute', top: '10px', right: '10px', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#bf8a52', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                              <Check size={12} strokeWidth={3} />
+                            </div>
+                          )}
+                          <p style={{ fontWeight: 700, margin: '0 0 6px 0', textTransform: 'capitalize' }}>
+                            {addr.full_name} <span style={{ fontSize: '11px', fontWeight: 600, color: '#bf8a52', marginLeft: '6px', textTransform: 'uppercase' }}>({addr.address_type})</span>
+                          </p>
+                          <p style={{ fontSize: '13px', color: '#666', margin: '0 0 8px 0', lineHeight: 1.4 }}>
+                            {addr.street}, {addr.city} - {addr.postal_code}
+                          </p>
+                          <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>Phone: {addr.phone}</p>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="mb-3">
-                    <label htmlFor="address" className="form-label" style={labelStyle}>Address</label>
-                    <input type="text" className="form-control" id="address" style={inputStyle} />
+                )}
+              </div>
+            </div>
+
+            {/* Payment Method Selection */}
+            <div className="card mb-4" style={cardStyle}>
+              <div className="card-body" style={{ padding: '28px' }}>
+                <h5 className="card-title" style={sectionTitleStyle}>
+                  <span style={iconCircleStyle}>💳</span> Select Payment Method
+                </h5>
+
+                {gateways.length === 0 ? (
+                  <p style={{ color: '#888' }}>No payment methods available.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {gateways.map((gw) => {
+                      const isSelected = selectedPaymentMethod === gw.slug;
+                      return (
+                        <div
+                          key={gw.id}
+                          onClick={() => setSelectedPaymentMethod(gw.slug)}
+                          style={{
+                            border: isSelected ? '2px solid #bf8a52' : '1px solid #e5e1da',
+                            borderRadius: '10px',
+                            padding: '16px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            backgroundColor: isSelected ? '#fffcf7' : '#fff',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: isSelected ? '5px solid #bf8a52' : '2px solid #e5e1da' }} />
+                            <div>
+                              <p style={{ fontWeight: 700, margin: 0 }}>{gw.name}</p>
+                              {gw.slug === 'razorpay' && <p style={{ fontSize: '11px', color: '#888', margin: 0 }}>Pay securely using cards, UPI, or NetBanking</p>}
+                              {gw.slug === 'cod' && <p style={{ fontSize: '11px', color: '#888', margin: 0 }}>Pay with cash upon delivery</p>}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="row">
-                    <div className="col-md-6 mb-3">
-                      <label htmlFor="city" className="form-label" style={labelStyle}>City</label>
-                      <input type="text" className="form-control" id="city" style={inputStyle} />
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <label htmlFor="zip" className="form-label" style={labelStyle}>ZIP Code</label>
-                      <input type="text" className="form-control" id="zip" style={inputStyle} />
-                    </div>
-                  </div>
-                </form>
+                )}
               </div>
             </div>
 
@@ -163,7 +377,6 @@ export default function CheckoutPage() {
                   <span style={iconCircleStyle}>🏷️</span> Apply Coupon
                 </h5>
 
-                {/* Manual coupon input */}
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
                   <input
                     type="text"
@@ -231,7 +444,6 @@ export default function CheckoutPage() {
                             onClick={() => isActive && applyCoupon(coupon.code)}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                              {/* Left dashed divider */}
                               <div style={couponLeftStyle}>
                                 <span style={couponDiscountBadge}>
                                   {coupon.discount_type === 'percentage'
@@ -243,7 +455,6 @@ export default function CheckoutPage() {
 
                               <div style={couponDivider} />
 
-                              {/* Right info */}
                               <div style={{ flex: 1 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
                                   <span style={couponCodeBadge}>{coupon.code}</span>
@@ -258,12 +469,6 @@ export default function CheckoutPage() {
                                   </span>
                                   {isActive && (
                                     <span style={tapToApplyBadge}>TAP TO APPLY</span>
-                                  )}
-                                  {!isActive && now < validFrom && (
-                                    <span style={{ fontSize: '11px', color: '#e67e22', fontWeight: 600 }}>Upcoming</span>
-                                  )}
-                                  {!isActive && now > validUntil && (
-                                    <span style={{ fontSize: '11px', color: '#e74c3c', fontWeight: 600 }}>Expired</span>
                                   )}
                                 </div>
                               </div>
@@ -295,12 +500,16 @@ export default function CheckoutPage() {
                 )}
 
                 {cartItems.map((item) => (
-                  <div key={item.id + (item.size || '')} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f0ede8' }}>
+                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f0ede8' }}>
                     <div>
-                      <span style={{ fontSize: '14px', fontWeight: 500, color: '#333' }}>{item.name}</span>
+                      <span style={{ fontSize: '14px', fontWeight: 500, color: '#333' }}>
+                        {item.variant?.product?.name || 'Item'}
+                      </span>
                       <span style={{ fontSize: '12px', color: '#aaa', marginLeft: '6px' }}>x{item.quantity}</span>
                     </div>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a1a' }}>₹{item.totalPrice?.toFixed(2)}</span>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a1a' }}>
+                      ₹{parseFloat(item.variant?.price * item.quantity).toFixed(2)}
+                    </span>
                   </div>
                 ))}
 
@@ -308,17 +517,27 @@ export default function CheckoutPage() {
                 <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '2px dashed #e8e4dd' }}>
                   <div style={summaryRow}>
                     <span style={summaryLabel}>Subtotal</span>
-                    <span style={summaryValue}>₹{totalAmount.toFixed(2)}</span>
+                    <span style={summaryValue}>₹{subtotal.toFixed(2)}</span>
                   </div>
 
-                  {appliedCoupon && (
+                  {discount > 0 && (
                     <div style={{ ...summaryRow, color: '#27ae60' }}>
-                      <span style={{ ...summaryLabel, color: '#27ae60' }}>
-                        Coupon ({appliedCoupon.code})
-                      </span>
-                      <span style={{ ...summaryValue, color: '#27ae60' }}>
-                        - ₹{discount.toFixed(2)}
-                      </span>
+                      <span style={{ ...summaryLabel, color: '#27ae60' }}>Discount</span>
+                      <span style={{ ...summaryValue, color: '#27ae60' }}>- ₹{discount.toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {shipping > 0 && (
+                    <div style={summaryRow}>
+                      <span style={summaryLabel}>Shipping</span>
+                      <span style={summaryValue}>₹{shipping.toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {tax > 0 && (
+                    <div style={summaryRow}>
+                      <span style={summaryLabel}>Tax</span>
+                      <span style={summaryValue}>₹{tax.toFixed(2)}</span>
                     </div>
                   )}
 
@@ -329,7 +548,17 @@ export default function CheckoutPage() {
                 </div>
               </div>
             </div>
-            <button style={placeOrderBtnStyle}>Place Order</button>
+            <button
+              onClick={handlePlaceOrder}
+              disabled={actionLoading || cartItems.length === 0}
+              style={{
+                ...placeOrderBtnStyle,
+                opacity: (actionLoading || cartItems.length === 0) ? 0.6 : 1,
+                cursor: (actionLoading || cartItems.length === 0) ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {actionLoading ? 'Placing Order...' : 'Place Order'}
+            </button>
           </div>
         </div>
       </div>

@@ -39,7 +39,7 @@ export default function Footer() {
           </div>
         </div>
         <div style={{ borderTop: '1px solid #2c2c2c', marginTop: '40px', paddingTop: '30px', textAlign: 'center', color: 'rgba(255, 255, 255, 0.6)', fontSize: '13px' }}>
-          © 2026 Manyavar. All rights reserved. | <Link href="/" className="footer-link" style={{ marginLeft: '8px' }}>Privacy Policy</Link> | <Link href="/" className="footer-link" style={{ marginLeft: '8px' }}>Terms & Conditions</Link>
+          © 2026 Manyavar. All rights reserved. | <Link href="/pages/privacy-policy" className="footer-link" style={{ marginLeft: '8px' }}>Privacy Policy</Link> | <Link href="/pages/terms-and-condition" className="footer-link" style={{ marginLeft: '8px' }}>Terms & Conditions</Link>
         </div>
       </div>
     </footer>

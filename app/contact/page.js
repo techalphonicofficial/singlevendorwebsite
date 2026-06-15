@@ -1,3 +1,10 @@
+'use client';
+
+import { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { showToast } from '../../store/slices/toastSlice';
+import { submitInquiryApi } from '../../store/apiService';
+
 const faqs = [
   { question: 'How do I place a custom order?', answer: 'Reach out via our contact form and our style experts will guide you through customization options.' },
   { question: 'What is the delivery timeframe?', answer: 'Most orders ship within 3-5 business days, with faster delivery available for select locations.' },
@@ -5,6 +12,49 @@ const faqs = [
 ];
 
 export default function ContactPage() {
+  const dispatch = useDispatch();
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    message: '',
+    type: 'contact'
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [id]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name || !formData.email || !formData.phone || !formData.message) {
+      dispatch(showToast({ message: 'Please fill in all required fields.', type: 'error' }));
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await submitInquiryApi(formData);
+      dispatch(showToast({ message: res.message || 'Your inquiry has been submitted successfully.', type: 'success' }));
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        message: '',
+        type: 'contact'
+      });
+    } catch (err) {
+      dispatch(showToast({ message: err.message || 'Failed to submit inquiry. Please try again.', type: 'error' }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="py-5">
       <div className="container">
@@ -20,24 +70,58 @@ export default function ContactPage() {
           <div className="col-lg-6">
             <div className="card border-0 shadow-sm p-4 h-100">
               <h2 className="h5 mb-3">Message our team</h2>
-              <form>
+              <form onSubmit={handleSubmit}>
                 <div className="mb-3">
                   <label htmlFor="name" className="form-label">Name</label>
-                  <input type="text" className="form-control" id="name" placeholder="Your name" />
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="name"
+                    placeholder="Your name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
                 <div className="mb-3">
                   <label htmlFor="email" className="form-label">Email</label>
-                  <input type="email" className="form-control" id="email" placeholder="name@example.com" />
+                  <input
+                    type="email"
+                    className="form-control"
+                    id="email"
+                    placeholder="name@example.com"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
                 <div className="mb-3">
                   <label htmlFor="phone" className="form-label">Phone</label>
-                  <input type="tel" className="form-control" id="phone" placeholder="+91 12345 67890" />
+                  <input
+                    type="tel"
+                    className="form-control"
+                    id="phone"
+                    placeholder="+91 12345 67890"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
                 <div className="mb-3">
                   <label htmlFor="message" className="form-label">Message</label>
-                  <textarea className="form-control" id="message" rows="5" placeholder="Tell us about your request"></textarea>
+                  <textarea
+                    className="form-control"
+                    id="message"
+                    rows="5"
+                    placeholder="Tell us about your request"
+                    value={formData.message}
+                    onChange={handleChange}
+                    required
+                  ></textarea>
                 </div>
-                <button type="submit" className="btn btn-warning">Send Message</button>
+                <button type="submit" className="btn btn-warning" disabled={loading}>
+                  {loading ? 'Sending...' : 'Send Message'}
+                </button>
               </form>
             </div>
           </div>

@@ -9,12 +9,12 @@ import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../store/slices/authSlice';
 import Searchbar from './Searchbar';
 import { FaRegHeart } from "react-icons/fa";
-import { LuShoppingCart } from "react-icons/lu";
 import { fetchProducts } from '../store/slices/productSlice';
 import { fetchCart } from '../store/slices/cartSlice';
 import { fetchWishlist } from '../store/slices/wishList';
-import { User } from "lucide-react";
-import { Search, X } from 'lucide-react';
+import { User, Search, X } from 'lucide-react';
+import CartDrawer from './CartDrawer';
+import WishlistDrawer from './WishlistDrawer';
 
 export default function Navbar() {
   const [openMenu, setOpenMenu] = useState(false);
@@ -22,15 +22,19 @@ export default function Navbar() {
   const [showProfile, setShowProfile] = useState(false);
   const [openSearch, setOpenSearch] = useState(false);
   const [hideNavbar, setHideNavbar] = useState(false);
+  const [openCartDrawer, setOpenCartDrawer] = useState(false);
+  const [openWishlistDrawer, setOpenWishlistDrawer] = useState(false);
   const lastScrollY = useRef(0);
-  // const cartItems = useSelector((state) => state.cart.items);
   const totalQuantity = useSelector((state) => state.cart.totalQuantity);
-  // const wishlistItems = useSelector((state) => state.wishlist.items);
-
   const wishlistQuantity = useSelector((state) => state.wishlist.totalQuantity);
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const { items: apiItems } = useSelector((state) => state.products) || { items: [] };
   const dispatch = useDispatch();
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!apiItems || apiItems.length === 0) {
@@ -136,6 +140,7 @@ export default function Navbar() {
             </div>
           </div>
           <Link href="/about" className="nav-link-custom">About</Link>
+          <Link href="/blogs" className="nav-link-custom">Blog</Link>
           <Link href="/contact" className="nav-link-custom">Contact</Link>
 
         </nav>
@@ -160,7 +165,7 @@ export default function Navbar() {
                   To access account and manage orders
                 </p>
                 {
-                  !isAuthenticated ? (
+                  (!mounted || !isAuthenticated) ? (
                     <Link href="/authServices" className="login-btn">
                       LOGIN / SIGNUP
                     </Link>
@@ -179,14 +184,14 @@ export default function Navbar() {
               </div>
               {/* MENU */}
               <div className="profile-links">
-                <Link href="/">Orders</Link>
+                <Link href="/userProfile?tab=orders">Orders</Link>
                 <Link href="/wishlist">Wishlist</Link>
-                <Link href="/">Gift Cards</Link>
+                <Link href="/userProfile">Gift Cards</Link>
                 <Link href="/contact">Contact Us</Link>
                 <Link href="/userProfile" className="new-link">
                   Profile
                 </Link>
-                {isAuthenticated && (
+                {mounted && isAuthenticated && (
                   <a
                     href="#"
                     onClick={(e) => {
@@ -215,21 +220,15 @@ export default function Navbar() {
 
             </div>
           </div>
-          <Link href="/cart" className="cart-btn-custom position-relative ">
+          <button onClick={() => setOpenCartDrawer(true)} className="cart-btn-custom position-relative bg-transparent border-0 text-dark p-0">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
             </svg>
-
-            {/* {totalQuantity > 0 && ( */}
-            <span className="badge-cart">{totalQuantity}</span>
-            {/* )} */}
-
-          </Link >
-          <Link href='/wishlist' className='FlagRed cart-btn-custom position-relative '><FaRegHeart size={20} />
-            {/* {wishlistQuantity > 0 && ( */}
-            <span className="badge-cart">{wishlistQuantity}</span>
-            {/* )} */}
-          </Link>
+            <span className="badge-cart">{mounted ? totalQuantity : 0}</span>
+          </button >
+          <button onClick={() => setOpenWishlistDrawer(true)} className='FlagRed cart-btn-custom position-relative bg-transparent border-0 text-dark p-0'><FaRegHeart size={20} />
+            <span className="badge-cart">{mounted ? wishlistQuantity : 0}</span>
+          </button>
         </div>
       </div>
 
@@ -238,7 +237,7 @@ export default function Navbar() {
       <div className='d-flex justify-content-between align-items-center d-md-none p-3 '>
         <div className='d-flex gap-1 justify-content-center align-items-center'>
 
-          {/* {
+          {
             openMenu ? (
               <IoMdClose
                 size={28}
@@ -253,7 +252,7 @@ export default function Navbar() {
                 style={{ cursor: "pointer" }}
               />
             )
-          } */}
+          }
           <Link href="/" className="navbar-brand-custom">
 
             <Image src='/logo.png' alt='logo' width={80} height={40} className=' logo-glow rounded-pill mr-4' />
@@ -288,24 +287,28 @@ export default function Navbar() {
             </div>
 
           </div>
-           <div className='position-relative d-inline-block'> <Link href='/wishlist' className='FlagRed'><FaRegHeart size={26} /></Link>
-            <span
-              className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark"
-              style={{ fontSize: '10px' }}
-            >
-              {wishlistQuantity}
-            </span>
-          </div>
-          {/* <div className="position-relative d-inline-block">
-            <Link href="/cart" className=' FlagRed'><LuShoppingCart size={28} /></Link>
-
-            <span
-              className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark"
-              style={{ fontSize: '10px' }}
-            >
-              {totalQuantity}
-            </span>
-          </div> */}
+           <div className='position-relative d-inline-block'> 
+             <button onClick={() => setOpenWishlistDrawer(true)} className='FlagRed bg-transparent border-0 text-dark p-0'><FaRegHeart size={26} /></button>
+             <span
+               className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark"
+               style={{ fontSize: '10px' }}
+             >
+               {mounted ? wishlistQuantity : 0}
+             </span>
+           </div>
+           <div className="position-relative d-inline-block ms-2">
+             <button onClick={() => setOpenCartDrawer(true)} className="bg-transparent border-0 text-dark p-0">
+               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                 <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+               </svg>
+             </button>
+             <span
+               className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark"
+               style={{ fontSize: '10px' }}
+             >
+               {mounted ? totalQuantity : 0}
+             </span>
+           </div>
         </div>
       </div>
 
@@ -363,16 +366,21 @@ export default function Navbar() {
             <span>›</span>
           </Link>
 
+          <Link href="/blogs" onClick={() => setOpenMenu(false)}>
+            <span>Blog</span>
+            <span>›</span>
+          </Link>
+
           <Link href="/contact" onClick={() => setOpenMenu(false)}>
             <span>Contact</span>
             <span>›</span>
           </Link>
-          <Link href="/profile" onClick={() => setOpenMenu(false)}>
+          <Link href="/userProfile" onClick={() => setOpenMenu(false)}>
             <span>Profile</span>
             <span>›</span>
           </Link>
-          <Link href="/LogOut" onClick={() => setOpenMenu(false)}>
-            <span>LogOut</span>
+          <Link href="/userProfile" onClick={() => setOpenMenu(false)}>
+            <span>Profile</span>
             <span>›</span>
           </Link>
 
@@ -411,6 +419,9 @@ export default function Navbar() {
         </div>
 
       </div>
+
+      <CartDrawer isOpen={openCartDrawer} onClose={() => setOpenCartDrawer(false)} />
+      <WishlistDrawer isOpen={openWishlistDrawer} onClose={() => setOpenWishlistDrawer(false)} />
 
     </header>
   );

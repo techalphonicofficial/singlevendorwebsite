@@ -172,6 +172,20 @@ export default function ShopPage() {
     dispatch(fetchProducts(params));
   }, [dispatch, sortBy]);
 
+  // Sync category filter from URL query parameter
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const catParam = searchParams.get('category');
+      if (catParam) {
+        setFilters((prev) => ({
+          ...prev,
+          categories: [catParam],
+        }));
+      }
+    }
+  }, []);
+
   // Transform products to Shop format
   const products = useMemo(() => {
     return apiItems.map(transformApiProduct);

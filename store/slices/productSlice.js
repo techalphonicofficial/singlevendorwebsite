@@ -97,7 +97,7 @@ const productSlice = createSlice({
       .addCase(fetchProductDetail.rejected, (state, action) => {
         state.detailLoading = false;
         state.detailError = action.payload || action.error.message;
-      });
+      })
   },
 });
 

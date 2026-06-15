@@ -1,5 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { addReviewApi, fetchReviewsApi, fetchOrdersApi } from '../apiService';
+import { addReviewApi, fetchReviewsApi } from '../apiService';
+import { fetchOrders } from './orderSlice';
+
+export { fetchOrders };
 
 const initialState = {
   reviews: [],
@@ -24,18 +27,6 @@ export const fetchReviews = createAsyncThunk(
   }
 );
 
-// Fetch user orders
-export const fetchOrders = createAsyncThunk(
-  'reviews/fetchOrders',
-  async (token, { rejectWithValue }) => {
-    try {
-      const data = await fetchOrdersApi(token);
-      return data;
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
 
 // Add a new review
 export const addReview = createAsyncThunk(

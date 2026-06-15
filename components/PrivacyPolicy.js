@@ -89,7 +89,6 @@ const PrivacyPolicy = ({ userInfo }) => {
       </div>
 
       <div className="security-section">
-        
         {/* 1. PROFILE UPDATE */}
         <div className="security-block">
           <div className="security-block-header">
@@ -102,14 +101,14 @@ const PrivacyPolicy = ({ userInfo }) => {
               <label className="address-label">Full Name</label>
               <div style={{ position: 'relative' }}>
                 <div style={{ position: 'absolute', left: '14px', top: '14px', color: '#888' }}><FiUser /></div>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   name="name"
-                  className="address-input" 
+                  className="address-input"
                   value={profileData.name}
                   onChange={handleChange}
                   style={{ paddingLeft: '40px' }}
-                  required 
+                  required
                 />
               </div>
             </div>
@@ -118,21 +117,21 @@ const PrivacyPolicy = ({ userInfo }) => {
               <label className="address-label">Mobile Number</label>
               <div style={{ position: 'relative' }}>
                 <div style={{ position: 'absolute', left: '14px', top: '14px', color: '#888' }}><FiPhone /></div>
-                <input 
-                  type="tel" 
+                <input
+                  type="tel"
                   name="phone"
-                  className="address-input" 
+                  className="address-input"
                   value={profileData.phone}
                   onChange={handleChange}
                   style={{ paddingLeft: '40px' }}
-                  required 
+                  required
                 />
               </div>
             </div>
 
-            <button 
-              type="submit" 
-              className="btn-primary-custom" 
+            <button
+              type="submit"
+              className="btn-primary-custom"
               style={{ padding: '12px 24px', width: 'fit-content', marginTop: '8px' }}
               disabled={loading}
             >
@@ -151,14 +150,14 @@ const PrivacyPolicy = ({ userInfo }) => {
           <form className="password-form" onSubmit={handlePasswordSubmit}>
             <div className="password-input-group">
               <label className="address-label">Current Password</label>
-              <input 
-                type={showPassword.current ? "text" : "password"} 
+              <input
+                type={showPassword.current ? "text" : "password"}
                 name="current"
-                className="address-input" 
-                placeholder="Enter current password" 
+                className="address-input"
+                placeholder="Enter current password"
                 value={passwordData.current}
                 onChange={handlePasswordChange}
-                required 
+                required
               />
               <button type="button" className="btn-toggle-password" onClick={() => togglePassword('current')}>
                 {showPassword.current ? <FiEyeOff /> : <FiEye />}
@@ -167,14 +166,14 @@ const PrivacyPolicy = ({ userInfo }) => {
 
             <div className="password-input-group">
               <label className="address-label">New Password</label>
-              <input 
-                type={showPassword.new ? "text" : "password"} 
+              <input
+                type={showPassword.new ? "text" : "password"}
                 name="new"
-                className="address-input" 
-                placeholder="Enter new password" 
+                className="address-input"
+                placeholder="Enter new password"
                 value={passwordData.new}
                 onChange={handlePasswordChange}
-                required 
+                required
               />
               <button type="button" className="btn-toggle-password" onClick={() => togglePassword('new')}>
                 {showPassword.new ? <FiEyeOff /> : <FiEye />}
@@ -183,14 +182,14 @@ const PrivacyPolicy = ({ userInfo }) => {
 
             <div className="password-input-group">
               <label className="address-label">Confirm New Password</label>
-              <input 
-                type={showPassword.confirm ? "text" : "password"} 
+              <input
+                type={showPassword.confirm ? "text" : "password"}
                 name="confirm"
-                className="address-input" 
-                placeholder="Confirm new password" 
+                className="address-input"
+                placeholder="Confirm new password"
                 value={passwordData.confirm}
                 onChange={handlePasswordChange}
-                required 
+                required
               />
               <button type="button" className="btn-toggle-password" onClick={() => togglePassword('confirm')}>
                 {showPassword.confirm ? <FiEyeOff /> : <FiEye />}

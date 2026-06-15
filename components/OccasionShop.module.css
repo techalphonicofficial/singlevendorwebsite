@@ -98,15 +98,43 @@
 }
 
 .vibeGrid {
-  display: grid;
-  gap: 42px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  gap: 28px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+
+  /* Break out of container to viewport edges */
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  padding-left: calc(50vw - 50% + 24px);
+  padding-right: calc(50vw - 50% + 24px);
+  padding-top: 10px;
+  padding-bottom: 32px; /* Extra padding to separate scrollbar from card labels */
+}
+
+.vibeGrid::-webkit-scrollbar {
+  height: 6px;
+}
+.vibeGrid::-webkit-scrollbar-track {
+  background: rgba(191, 138, 82, 0.1); /* Visible track with subtle gold tint */
+  border-radius: 10px;
+}
+.vibeGrid::-webkit-scrollbar-thumb {
+  background: #bf8a52;
+  border-radius: 10px;
+}
+.vibeGrid::-webkit-scrollbar-thumb:hover {
+  background: #a3723f;
 }
 
 .vibeCard {
   color: #18110c;
   display: block;
   text-decoration: none;
+  flex: 0 0 280px;
+  scroll-snap-align: start;
 }
 
 .vibeImageWrap {
@@ -169,8 +197,10 @@
   }
 
   .vibeGrid {
-    gap: 28px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .vibeCard {
+    flex: 0 0 220px;
   }
 }
 
@@ -207,7 +237,10 @@
   }
 
   .vibeGrid {
-    gap: 20px 14px;
+    gap: 14px;
+  }
+  .vibeCard {
+    flex: 0 0 180px;
   }
 
   .vibeImageWrap {

@@ -2,12 +2,12 @@
 
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { fetchPageBySlug } from '../../store/slices/pageSlice';
-import { getImageUrl, getMediaUrl } from '../../store/apiConfig';
+import { fetchPageBySlug } from '../../../store/slices/pageSlice';
+import { getImageUrl, getMediaUrl } from '../../../store/apiConfig';
+import './cmspage.css';
 import { Sparkles, CheckCircle, ShieldCheck, Box, Gem, ArrowLeft, RefreshCw } from 'lucide-react';
-
-const slug = 'about-us';
 
 const renderIcon = (iconName) => {
   if (!iconName) return <Sparkles size={24} />;
@@ -19,7 +19,9 @@ const renderIcon = (iconName) => {
   return <Sparkles size={24} />;
 };
 
-export default function AboutPage() {
+export default function CMSPage() {
+  const params = useParams();
+  const slug = params?.slug;
   const dispatch = useDispatch();
 
   const { pageData, loading, error } = useSelector((state) => state.pages || { pageData: {}, loading: {}, error: {} });
@@ -29,10 +31,10 @@ export default function AboutPage() {
   const pageError = error[slug];
 
   useEffect(() => {
-    if (!data && !isLoading) {
+    if (slug && !data && !isLoading) {
       dispatch(fetchPageBySlug(slug));
     }
-  }, [data, isLoading, dispatch]);
+  }, [slug, data, isLoading, dispatch]);
 
   // Handle dynamic document title updates
   useEffect(() => {
@@ -42,7 +44,9 @@ export default function AboutPage() {
   }, [data]);
 
   const handleRetry = () => {
-    dispatch(fetchPageBySlug(slug));
+    if (slug) {
+      dispatch(fetchPageBySlug(slug));
+    }
   };
 
   if (isLoading) {
@@ -86,7 +90,7 @@ export default function AboutPage() {
       <div className="cms-container d-flex align-items-center justify-content-center py-5">
         <div className="text-center p-5 bg-white border rounded-4 shadow-sm" style={{ maxWidth: '500px' }}>
           <h3 className="fw-bold mb-2">Page Not Found</h3>
-          <p className="text-muted mb-4">The about page is currently not configured or published on the CMS.</p>
+          <p className="text-muted mb-4">The page you are looking for does not exist or has been moved.</p>
           <Link href="/" className="btn btn-warning px-4 py-2 rounded-pill fw-semibold d-inline-flex align-items-center gap-2">
             <ArrowLeft size={16} /> Back to Home
           </Link>

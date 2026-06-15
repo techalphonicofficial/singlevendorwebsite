@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {IoHomeOutline,IoBagHandleOutline,IoPersonOutline} from 'react-icons/io5';
 import { FiShoppingBag } from 'react-icons/fi';
@@ -9,6 +10,11 @@ import { useSelector, useDispatch } from 'react-redux';
 export default function MobileBottomNav() {
   //  const wishlistQuantity = useSelector((state) => state.wishlist.totalQuantity);
    const totalQuantity = useSelector((state) => state.cart.totalQuantity);
+   const [mounted, setMounted] = useState(false);
+   
+   useEffect(() => {
+     setMounted(true);
+   }, []);
 
   return (
 
@@ -40,7 +46,7 @@ export default function MobileBottomNav() {
               <span>Cart</span>
 
             {/* {totalQuantity > 0 && ( */}
-            <span className="badge-cart">{totalQuantity}</span>
+            <span className="badge-cart">{mounted ? totalQuantity : 0}</span>
             {/* )} */}
 
           </Link >

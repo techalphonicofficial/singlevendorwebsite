@@ -158,6 +158,42 @@ export const updateCartItemQty = createAsyncThunk(
   }
 );
 
+export const clearCartFromServer = createAsyncThunk(
+  'cart/clearCartFromServer',
+  async (itemsToClear, { dispatch, getState, rejectWithValue }) => {
+    try {
+      const state = getState();
+      let token = state.auth?.token;
+
+      if (!token && typeof window !== 'undefined') {
+        token = localStorage.getItem('auth_token');
+      }
+
+      if (!token) {
+        return rejectWithValue('Please login to clear cart');
+      }
+
+      const items = itemsToClear || state.cart.items || [];
+      const cartItemIds = items
+        .map(item => item.cartItemId || item.id)
+        .filter(Boolean);
+
+      const deletePromises = cartItemIds.map(id =>
+        deleteCartItemApi(id, token).catch(err => {
+          console.error(`Error deleting cart item ${id}:`, err);
+        })
+      );
+
+      await Promise.all(deletePromises);
+      dispatch(clearCart());
+      return {};
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+
 const initialState = {
   items: [],
   totalQuantity: 0,
@@ -231,6 +267,9 @@ const cartSlice = createSlice({
       state.items = [];
       state.totalQuantity = 0;
       state.totalAmount = 0;
+      state.cartData = null;
+      state.promotionData = null;
+      state.appliedCoupon = null;
     },
     applyCoupon(state, action) {
       state.appliedCoupon = action.payload;

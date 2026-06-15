@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchBanners } from '../store/slices/bannerSlice';
 import Link from 'next/link';
 import './banner.css';
+import { getMediaUrl } from '../store/apiConfig';
 
 const Banner = () => {
   const dispatch = useDispatch();
@@ -56,7 +57,7 @@ const Banner = () => {
             playsInline
             key={banner.id}
           >
-            <source src={banner.video_path} type="video/mp4" />
+            <source src={getMediaUrl(banner.video_path)} type="video/mp4" />
           </video>
 
           {/* Overlay Content */}

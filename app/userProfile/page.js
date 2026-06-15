@@ -19,14 +19,25 @@ function page() {
   const router = useRouter();
   const [activeMenu, setActiveMenu] = useState('Dashboard');
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
 
-    if (!isAuthenticated) {
+  useEffect(() => {
+    if (mounted && !isAuthenticated) {
       router.push('/authServices');
     }
+  }, [isAuthenticated, mounted, router]);
 
-  }, [isAuthenticated]);
+  if (!mounted) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f8f6f3', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ color: '#bf8a52', fontWeight: 600, fontSize: '16px' }}>Loading profile...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="profile-layout">

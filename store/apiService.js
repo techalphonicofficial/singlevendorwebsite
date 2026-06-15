@@ -464,23 +464,35 @@ export const fetchCategoriesApi = async () => {
   return data.data; // List of categories with nested children (subcategories)
 };
 
-export const fetchSubcategoriesApi = async () => {
-  console.log('=== REDUX CATEGORIES API: Fetch Subcategories Initiated ===');
+export const fetchSubcategoriesApi = async (categoryId = '') => {
+  console.log('=== REDUX CATEGORIES API: Fetch Subcategories Initiated ===', { categoryId });
+  const query = categoryId ? `?category_id=${categoryId}` : '';
+  const url = `${ENDPOINTS.subCategories}${query}`;
+  console.log('URL:', url);
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+    },
+  });
+
+  const responseText = await response.text();
+  let data;
   try {
-    const categories = await fetchCategoriesApi();
-    // Extract and flatten all children categories which represent subcategories
-    const subcategories = categories.reduce((acc, cat) => {
-      if (cat.children && Array.isArray(cat.children)) {
-        return [...acc, ...cat.children];
-      }
-      return acc;
-    }, []);
-    console.log('=== REDUX CATEGORIES API: Fetch Subcategories Succeeded ===', { count: subcategories.length });
-    return subcategories;
-  } catch (error) {
-    console.error('=== REDUX CATEGORIES API: Fetch Subcategories Failed ===', error.message);
-    throw error;
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch (e) {
+    throw new Error('Invalid JSON response from server');
   }
+
+  if (!response.ok || data.status === false) {
+    console.error('=== REDUX CATEGORIES API: Fetch Subcategories Failed ===', data.message || 'Fetching subcategories failed');
+    throw new Error(data.message || 'Fetching subcategories failed');
+  }
+
+  console.log('=== REDUX CATEGORIES API: Fetch Subcategories Succeeded ===');
+  return data.data;
 };
 
 // 5. Wishlist API calls
@@ -723,9 +735,9 @@ export const fetchReviewsApi = async (productId) => {
   return data.data;
 };
 
-export const fetchOrdersApi = async (token) => {
-  console.log('=== REDUX ORDERS API: Fetch Orders Initiated ===');
-  const url = ENDPOINTS.getOrders;
+export const fetchOrdersApi = async (token, page = 1) => {
+  console.log('=== REDUX ORDERS API: Fetch Orders Initiated ===', { page });
+  const url = `${ENDPOINTS.getOrders}?page=${page}`;
   console.log('URL:', url);
   console.log('Method: GET');
 
@@ -761,9 +773,9 @@ export const fetchOrdersApi = async (token) => {
   }
 
   console.log('=== REDUX ORDERS API: Fetch Orders Succeeded ===');
-  // Extract orders from paginated structure: data.data.orders.data
-  return data.data?.orders?.data || [];
+  return data.data?.orders || { data: [] };
 };
+
 
 export const fetchOrderDetailApi = async (orderId, token) => {
   console.log('=== REDUX ORDERS API: Fetch Order Detail Initiated ===', orderId);
@@ -860,4 +872,296 @@ export const fetchCouponsApi = async (token) => {
   }
 
   return data.data || [];
+};
+
+export const fetchCheckoutApi = async (token) => {
+  console.log('=== REDUX CHECKOUT API: Fetch Checkout Initiated ===');
+  const url = ENDPOINTS.checkout;
+  console.log('URL:', url);
+  console.log('Method: GET');
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    },
+  });
+
+  const responseText = await response.text();
+  let data;
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch (e) {
+    throw new Error('Invalid JSON response from server');
+  }
+
+  if (!response.ok || data.status === false) {
+    throw new Error(data.message || 'Fetching checkout details failed');
+  }
+
+  return data.data;
+};
+
+export const placeOrderApi = async (payload, token) => {
+  console.log('=== REDUX CHECKOUT API: Place Order Initiated ===', payload);
+  const url = ENDPOINTS.placeOrder;
+  console.log('URL:', url);
+  console.log('Method: POST');
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const responseText = await response.text();
+  let data;
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch (e) {
+    throw new Error('Invalid JSON response from server');
+  }
+
+  if (!response.ok || data.status === false) {
+    throw new Error(data.message || 'Placing order failed');
+  }
+
+  return data;
+};
+
+export const fetchDashboardApi = async (token) => {
+  console.log('=== REDUX DASHBOARD API: Fetch Dashboard Initiated ===');
+  const url = ENDPOINTS.dashboard;
+  console.log('URL:', url);
+  console.log('Method: GET');
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    },
+  });
+
+  const responseText = await response.text();
+  let data;
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch (e) {
+    throw new Error('Invalid JSON response from server');
+  }
+
+  if (!response.ok || data.status === false) {
+    throw new Error(data.message || 'Fetching dashboard data failed');
+  }
+
+  return data.data;
+};
+
+export const cancelOrderApi = async (payload, token) => {
+  console.log('=== REDUX ORDERS API: Cancel Order Initiated ===', payload);
+  const url = ENDPOINTS.cancelOrder;
+  console.log('URL:', url);
+  console.log('Method: POST');
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const responseText = await response.text();
+  let data;
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch (e) {
+    throw new Error('Invalid JSON response from server');
+  }
+
+  if (!response.ok || data.status === false) {
+    throw new Error(data.message || 'Cancelling order failed');
+  }
+
+  return data;
+};
+
+export const cancelOrderItemApi = async (payload, token) => {
+  console.log('=== REDUX ORDERS API: Cancel Order Item Initiated ===', payload);
+  const url = ENDPOINTS.cancelOrderItem;
+  console.log('URL:', url);
+  console.log('Method: POST');
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const responseText = await response.text();
+  let data;
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch (e) {
+    throw new Error('Invalid JSON response from server');
+  }
+
+  if (!response.ok || data.status === false) {
+    throw new Error(data.message || 'Cancelling order item failed');
+  }
+
+  return data;
+};
+
+export const fetchPageBySlugApi = async (slug) => {
+  console.log(`=== REDUX CMS API: Fetch Page by Slug Initiated ===`, slug);
+  const url = ENDPOINTS.getPageBySlug(slug);
+  console.log('URL:', url);
+  console.log('Method: GET');
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+    },
+  });
+
+  const responseText = await response.text();
+  let data;
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch (e) {
+    throw new Error('Invalid JSON response from server');
+  }
+
+  if (!response.ok || data.status === false) {
+    throw new Error(data.message || `Failed to fetch page: ${slug}`);
+  }
+
+  return data;
+};
+
+export const fetchBlogsApi = async () => {
+  console.log('=== REDUX BLOGS API: Fetch Blogs Initiated ===');
+  const url = ENDPOINTS.blogs;
+  console.log('URL:', url);
+  console.log('Method: GET');
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+    },
+  });
+
+  const responseText = await response.text();
+  let data;
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch (e) {
+    throw new Error('Invalid JSON response from server');
+  }
+
+  if (!response.ok || data.status === false) {
+    console.error('=== REDUX BLOGS API: Fetch Blogs Failed ===', data.message || 'Fetching blogs failed');
+    throw new Error(data.message || 'Fetching blogs failed');
+  }
+
+  console.log('=== REDUX BLOGS API: Fetch Blogs Succeeded ===');
+  return data.data;
+};
+
+export const fetchBlogDetailApi = async (slug) => {
+  console.log(`=== REDUX BLOGS API: Fetch Blog Detail Initiated ===`, slug);
+  const url = ENDPOINTS.blogDetail(slug);
+  console.log('URL:', url);
+  console.log('Method: GET');
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
+
+    const responseText = await response.text();
+    let data;
+    try {
+      data = responseText ? JSON.parse(responseText) : {};
+    } catch (e) {
+      throw new Error('Invalid JSON response from server');
+    }
+
+    if (response.ok && data.status !== false && data.data) {
+      console.log('=== REDUX BLOGS API: Fetch Blog Detail Succeeded ===');
+      return data.data;
+    }
+  } catch (err) {
+    console.warn(`=== REDUX BLOGS API: Direct fetch for blog ${slug} failed, falling back to all-blogs filter ===`, err);
+  }
+
+  const allBlogsData = await fetchBlogsApi();
+  const blogs = allBlogsData.blogs || allBlogsData;
+  if (Array.isArray(blogs)) {
+    const found = blogs.find(b => b.slug === slug);
+    if (found) {
+      return { blog: found };
+    }
+  }
+  throw new Error(`Blog not found with slug: ${slug}`);
+};
+
+export const submitInquiryApi = async (payload) => {
+  console.log('=== REDUX INQUIRY API: Submit Inquiry Initiated ===', payload);
+  const url = ENDPOINTS.inquiry;
+  console.log('URL:', url);
+  console.log('Method: POST');
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const responseText = await response.text();
+  let data;
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch (e) {
+    throw new Error('Invalid JSON response from server');
+  }
+
+  if (!response.ok || data.status === false) {
+    console.error('=== REDUX INQUIRY API: Submit Inquiry Failed ===', data.message || 'Submitting inquiry failed');
+    throw new Error(data.message || 'Submitting inquiry failed');
+  }
+
+  console.log('=== REDUX INQUIRY API: Submit Inquiry Succeeded ===');
+  return data;
 };
