@@ -158,8 +158,8 @@ function getGalleryImages(product, selectedVariant = null, selectedColor = null,
       });
     }
   } else {
-    // If a variant or color is selected, append the product's main galleries as secondary options
-    if (product?.galleries && product.galleries.length > 0) {
+    // If a variant or color is selected, append the product's main galleries as secondary options (except for target product)
+    if (!isTargetProduct && product?.galleries && product.galleries.length > 0) {
       const mainImgs = product.galleries
         .map(g => getImageUrl(g.image_url || g.image || g.url || ''))
         .filter(Boolean);
