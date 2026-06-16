@@ -36,29 +36,44 @@ export const ENDPOINTS = {
 
 export const getImageUrl = (url) => {
   if (!url) return '';
-  if (url.startsWith('/api/proxy-image') || url.startsWith('http://localhost:3000/api/proxy-image')) {
+  
+  // If the URL already contains our proxy endpoint, return it as-is
+  if (url.includes('/api/proxy-image')) {
+    if (url.startsWith('http')) {
+      const match = url.match(/\/api\/proxy-image\?.+/);
+      if (match) return match[0];
+    }
     return url;
   }
+
   let finalUrl = url;
-  if (url.includes('localhost') && !url.includes('/api/proxy-image')) {
+  if (url.startsWith('http')) {
+    // Replace any external host/protocol (like vercel or localhost) with the correct backend URL
     finalUrl = url.replace(/https?:\/\/[^\/]+/g, 'https://mybiography.in');
-  } else if (!url.startsWith('http')) {
+  } else {
     const domain = 'https://mybiography.in';
     const cleanPath = url.startsWith('/') ? url : `/${url}`;
     finalUrl = `${domain}${cleanPath}`;
   }
-  if (finalUrl.startsWith('http') && (finalUrl.includes('mybiography.in') || finalUrl.includes('ngrok') || finalUrl.includes('rekhacorporation.com'))) {
-    return `/api/proxy-image?url=${encodeURIComponent(finalUrl)}`;
-  }
-  return finalUrl;
+  return `/api/proxy-image?url=${encodeURIComponent(finalUrl)}`;
 };
 
 export const getMediaUrl = (url) => {
   if (!url) return '';
+
+  // If the media URL is already absolute/relative pointing to proxy, return it
+  if (url.includes('/api/proxy-image')) {
+    if (url.startsWith('http')) {
+      const match = url.match(/\/api\/proxy-image\?.+/);
+      if (match) return match[0];
+    }
+    return url;
+  }
+
   let finalUrl = url;
-  if (url.includes('localhost')) {
+  if (url.startsWith('http')) {
     finalUrl = url.replace(/https?:\/\/[^\/]+/g, 'https://mybiography.in');
-  } else if (!url.startsWith('http')) {
+  } else {
     const domain = 'https://mybiography.in';
     const cleanPath = url.startsWith('/') ? url : `/${url}`;
     finalUrl = `${domain}${cleanPath}`;
