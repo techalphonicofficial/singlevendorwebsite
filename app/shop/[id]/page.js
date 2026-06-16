@@ -528,7 +528,7 @@ export default function ProductDetailPage() {
                   src={images[selectedImage]}
                   alt={product.name}
                   className="img-fluid rounded object-contain zoom-image"
-                  style={{ width: '100%', maxHeight: '550px', objectFit: 'cover', borderRadius: '12px' }}
+                  style={{ width: '100%', maxHeight: '550px', objectFit: 'contain', borderRadius: '12px' }}
                   onError={e => { e.target.src = '/DAJ_4613.jpg'; }}
                 />
                 <button className="preview-btn" aria-label="Zoom image">
