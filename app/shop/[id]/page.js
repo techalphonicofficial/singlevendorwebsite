@@ -44,11 +44,49 @@ function getDiscountedPrice(basePrice, discountType, discountValue) {
   if (discountType === 'fixed') return Math.round(base - disc);
   return base;
 }
-function getGalleryImages(product) {
-  if (product?.galleries && product.galleries.length > 0) {
-    const imgs = product.galleries.map(g => getImageUrl(g.image_url || g.image || g.url || '')).filter(Boolean);
-    if (imgs.length > 0) return imgs;
+function getGalleryImages(product, selectedVariant = null) {
+  let list = [];
+
+  // If a variant is selected, prioritize its shared_galleries images
+  if (selectedVariant?.shared_galleries && selectedVariant.shared_galleries.length > 0) {
+    list = selectedVariant.shared_galleries
+      .map(g => getImageUrl(g.image_url || g.image || g.url || ''))
+      .filter(Boolean);
   }
+
+  // If list is empty (no size selected or selected variant has no shared_galleries),
+  // merge all product galleries and ALL variants' shared_galleries.
+  if (list.length === 0) {
+    if (product?.galleries && product.galleries.length > 0) {
+      const mainImgs = product.galleries
+        .map(g => getImageUrl(g.image_url || g.image || g.url || ''))
+        .filter(Boolean);
+      list = [...list, ...mainImgs];
+    }
+
+    if (product?.variants && product.variants.length > 0) {
+      product.variants.forEach(v => {
+        if (v.shared_galleries && v.shared_galleries.length > 0) {
+          const varImgs = v.shared_galleries
+            .map(g => getImageUrl(g.image_url || g.image || g.url || ''))
+            .filter(Boolean);
+          list = [...list, ...varImgs];
+        }
+      });
+    }
+  } else {
+    // If a variant is selected, append the product's main galleries as secondary options
+    if (product?.galleries && product.galleries.length > 0) {
+      const mainImgs = product.galleries
+        .map(g => getImageUrl(g.image_url || g.image || g.url || ''))
+        .filter(Boolean);
+      list = [...list, ...mainImgs];
+    }
+  }
+
+  const unique = [...new Set(list)];
+  if (unique.length > 0) return unique;
+
   if (product?.thumbnail) return [getImageUrl(product.thumbnail)];
   return ['/DAJ_4613.jpg'];
 }
@@ -163,8 +201,10 @@ export default function ProductDetailPage() {
     }
   }, [dispatch, allItems.length]);
 
-  // ── Reset image on product change ─────────────────────────────────────────
-  useEffect(() => { setSelectedImage(0); }, [product?.id]);
+  // ── Reset image on product or variant change ───────────────────────────────
+  const selectedSize = product?.id ? selectedSizes[product.id] : null;
+  const selectedVariant = selectedSize ? findVariantBySize(product, selectedSize) : null;
+  useEffect(() => { setSelectedImage(0); }, [product?.id, selectedVariant?.id]);
 
   // ── Loading state ─────────────────────────────────────────────────────────
   if (loading) {
@@ -214,7 +254,7 @@ export default function ProductDetailPage() {
   }
 
   // ── Derived data ─────────────────────────────────────────────────────────
-  const images = getGalleryImages(product);
+  const images = getGalleryImages(product, selectedVariant);
   const sizes = getSizes(product);
   const basePrice = parsePrice(product.base_price);
   const discountType = product.discount_type;
