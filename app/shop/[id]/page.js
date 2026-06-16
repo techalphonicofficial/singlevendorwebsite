@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import '../../../components/shopage.css';
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addCartItem, fetchCart, applyCoupon, removeCoupon } from '../../../store/slices/cartSlice';
 import { addToWishlist, removeFromWishlist } from '../../../store/slices/wishList';
@@ -44,18 +44,101 @@ function getDiscountedPrice(basePrice, discountType, discountValue) {
   if (discountType === 'fixed') return Math.round(base - disc);
   return base;
 }
-function getGalleryImages(product, selectedVariant = null) {
+const colorHexMap = {
+  'Yellow': '#f4ead8',
+  'White': '#ffffff',
+  'white': '#ffffff',
+  'Pink': '#ffc0cb',
+  'Silver': '#c0c0c0',
+  'Gold': '#ffd700',
+  'GOLD': '#ffd700',
+  'Black': '#111111',
+  'black': '#111111',
+  'Deep Black': '#050505',
+  'Green': '#2e7d32',
+  'green': '#2e7d32',
+  'Blue': '#1565c0',
+  'blue': '#1565c0',
+  'Grey': '#888888',
+  'grey': '#888888',
+  'Teal': '#008080',
+  'teal': '#008080',
+  'Turquois': '#40e0d0',
+  'turquois': '#40e0d0',
+  'navy': '#000080',
+  'Navy': '#000080',
+  'Maroon': '#800000',
+  'maroon': '#800000',
+  'Red': '#ff0000',
+  'red': '#ff0000',
+  'Dark Pink': '#e75480',
+  'dark pink': '#e75480'
+};
+
+function getColors(product) {
+  if (product?.variants && product.variants.length > 0) {
+    const colorSets = product.variants
+      .flatMap(v => v.attribute_values || [])
+      .filter(av => av.attribute_id === 5)
+      .map(av => av.value);
+    if (colorSets.length > 0) return [...new Set(colorSets)];
+  }
+  return [];
+}
+
+function getGalleryImages(product, selectedVariant = null, selectedColor = null, isTargetProduct = false) {
   let list = [];
 
-  // If a variant is selected, prioritize its shared_galleries images
-  if (selectedVariant?.shared_galleries && selectedVariant.shared_galleries.length > 0) {
-    list = selectedVariant.shared_galleries
-      .map(g => getImageUrl(g.image_url || g.image || g.url || ''))
-      .filter(Boolean);
+  // If it is the target product and a color is selected, retrieve images only for that color
+  if (isTargetProduct && selectedColor) {
+    if (product?.variants && product.variants.length > 0) {
+      product.variants.forEach(v => {
+        const hasColor = v.attribute_values?.some(av => av.attribute_id === 5 && av.value === selectedColor);
+        if (hasColor && v.shared_galleries && v.shared_galleries.length > 0) {
+          const sortedGalleries = [...v.shared_galleries].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+          sortedGalleries.forEach(g => {
+            const url = getImageUrl(g.image_url || g.image || g.url || '');
+            if (url) list.push(url);
+          });
+        }
+      });
+    }
+
+    // Fall back to main galleries matching this color if no variant has shared_galleries
+    if (list.length === 0 && product?.galleries && product.galleries.length > 0) {
+      let colorAttrValueId = null;
+      if (product.variants && product.variants.length > 0) {
+        for (const v of product.variants) {
+          const colorAttr = v.attribute_values?.find(av => av.attribute_id === 5 && av.value === selectedColor);
+          if (colorAttr) {
+            colorAttrValueId = colorAttr.id;
+            break;
+          }
+        }
+      }
+
+      if (colorAttrValueId) {
+        const matchingGalleries = product.galleries
+          .filter(g => g.attribute_value_id === colorAttrValueId)
+          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+        
+        matchingGalleries.forEach(g => {
+          const url = getImageUrl(g.image_url || g.image || g.url || '');
+          if (url) list.push(url);
+        });
+      }
+    }
+  } else {
+    // Standard prioritization logic for other products:
+    // If a variant is selected, prioritize its shared_galleries images
+    if (selectedVariant?.shared_galleries && selectedVariant.shared_galleries.length > 0) {
+      list = selectedVariant.shared_galleries
+        .map(g => getImageUrl(g.image_url || g.image || g.url || ''))
+        .filter(Boolean);
+    }
   }
 
-  // If list is empty (no size selected or selected variant has no shared_galleries),
-  // merge all product galleries and ALL variants' shared_galleries.
+  // If list is empty, merge all product galleries and ALL variants' shared_galleries.
   if (list.length === 0) {
     if (product?.galleries && product.galleries.length > 0) {
       const mainImgs = product.galleries
@@ -75,7 +158,7 @@ function getGalleryImages(product, selectedVariant = null) {
       });
     }
   } else {
-    // If a variant is selected, append the product's main galleries as secondary options
+    // If a variant or color is selected, append the product's main galleries as secondary options
     if (product?.galleries && product.galleries.length > 0) {
       const mainImgs = product.galleries
         .map(g => getImageUrl(g.image_url || g.image || g.url || ''))
@@ -204,6 +287,48 @@ export default function ProductDetailPage() {
   // ── Reset image on product or variant change ───────────────────────────────
   const selectedSize = product?.id ? selectedSizes[product.id] : null;
   const selectedVariant = selectedSize ? findVariantBySize(product, selectedSize) : null;
+  
+  const isTargetProduct = slug === 'elegant-mens-wedding-sherwani-dupatta-gold-velvet-floral-print-traditional-indian-ethnic-wear-with-tassels';
+  const colors = useMemo(() => getColors(product), [product]);
+  const [selectedColor, setSelectedColor] = useState(null);
+
+  // Default to first color
+  useEffect(() => {
+    if (isTargetProduct && colors.length > 0 && !selectedColor) {
+      setSelectedColor(colors[0]);
+    }
+  }, [isTargetProduct, colors, selectedColor]);
+
+  // Sync color with size selection
+  useEffect(() => {
+    if (isTargetProduct && selectedSize && product?.variants) {
+      const variant = product.variants.find(v => v.attribute_values?.some(av => av.attribute_id === 1 && av.value === selectedSize));
+      const colorVal = variant?.attribute_values?.find(av => av.attribute_id === 5)?.value;
+      if (colorVal && colorVal !== selectedColor) {
+        setSelectedColor(colorVal);
+      }
+    }
+  }, [isTargetProduct, selectedSize, product, selectedColor]);
+
+  // Reset selectedImage when color changes
+  useEffect(() => {
+    if (isTargetProduct) {
+      setSelectedImage(0);
+    }
+  }, [selectedColor, isTargetProduct]);
+
+  // Handle color selection click
+  const handleColorSelect = (color) => {
+    setSelectedColor(color);
+    if (product?.variants) {
+      const variant = product.variants.find(v => v.attribute_values?.some(av => av.attribute_id === 5 && av.value === color));
+      const sizeVal = variant?.attribute_values?.find(av => av.attribute_id === 1)?.value;
+      if (sizeVal) {
+        dispatch(setSelectedSize({ productId: product.id, size: sizeVal }));
+      }
+    }
+  };
+
   useEffect(() => { setSelectedImage(0); }, [product?.id, selectedVariant?.id]);
 
   // ── Loading state ─────────────────────────────────────────────────────────
@@ -254,7 +379,7 @@ export default function ProductDetailPage() {
   }
 
   // ── Derived data ─────────────────────────────────────────────────────────
-  const images = getGalleryImages(product, selectedVariant);
+  const images = getGalleryImages(product, selectedVariant, selectedColor, isTargetProduct);
   const sizes = getSizes(product);
   const basePrice = parsePrice(product.base_price);
   const discountType = product.discount_type;
@@ -477,6 +602,44 @@ export default function ProductDetailPage() {
                 style={{ lineHeight: 1.7 }}
                 dangerouslySetInnerHTML={{ __html: description }}
               />
+
+              {/* Color Selector */}
+              {isTargetProduct && colors.length > 0 && (
+                <div className="mb-4">
+                  <label className="form-label fw-semibold mb-2" style={{ letterSpacing: '0.5px' }}>SELECT COLOR</label>
+                  <div className="d-flex flex-wrap gap-2">
+                    {colors.map(color => {
+                      const colorHex = colorHexMap[color] || colorHexMap[color.toLowerCase()] || '#888888';
+                      const isSelected = selectedColor === color;
+                      return (
+                        <button
+                          key={color}
+                          type="button"
+                          className="btn rounded-pill px-4 py-2 d-flex align-items-center gap-2"
+                          style={{
+                            border: isSelected ? '1.5px solid #d4a574' : '1px solid #ccc',
+                            backgroundColor: isSelected ? '#333' : '#fff',
+                            color: isSelected ? '#fff' : '#333',
+                            transition: 'all 0.2s ease',
+                            boxShadow: isSelected ? '0 4px 10px rgba(0,0,0,0.1)' : 'none'
+                          }}
+                          onClick={() => handleColorSelect(color)}
+                        >
+                          <span style={{
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            backgroundColor: colorHex,
+                            border: '1px solid #ccc',
+                            display: 'inline-block'
+                          }} />
+                          <span className="fw-semibold text-uppercase" style={{ fontSize: '0.85rem' }}>{color}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Size Selector */}
               <div className="mb-4">
